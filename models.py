@@ -75,6 +75,7 @@ class SessionInfo:
     script_path: str
     status: str = "running"  # running, stopped
     pid: Optional[int] = None
+    start_time: Optional[float] = None  # 启动时间戳
 
     def __repr__(self):
         return f"SessionInfo({self.session_name}, {self.status})"

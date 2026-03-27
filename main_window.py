@@ -3,6 +3,7 @@
 """主窗口"""
 
 import os
+import re
 import shutil
 from datetime import datetime
 from PyQt5.QtWidgets import (
@@ -13,7 +14,7 @@ from PyQt5.QtWidgets import (
     QMenuBar, QStackedWidget
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor
 
 from models import Mode, WorkspaceInfo, ScriptInfo, TaskInfo, SessionInfo
 from config import ConfigManager
@@ -21,6 +22,27 @@ from config_dialog import ConfigDialog
 from workspace_scanner import WorkspaceScanner
 from tmux_manager import get_tmux_manager
 import i18n
+
+
+# ANSI 颜色代码映射
+ANSI_COLORS = {
+    '30': '#000000',  # 黑色
+    '31': '#e74c3c',  # 红色
+    '32': '#2ecc71',  # 绿色
+    '33': '#f39c12',  # 黄色
+    '34': '#3498db',  # 蓝色
+    '35': '#9b59b6',  # 紫色
+    '36': '#1abc9c',  # 青色
+    '37': '#ecf0f1',  # 白色
+    '90': '#7f8c8d',  # 亮黑色
+    '91': '#ff6b6b',  # 亮红色
+    '92': '#55efc4',  # 亮绿色
+    '93': '#ffeaa7',  # 亮黄色
+    '94': '#74b9ff',  # 亮蓝色
+    '95': '#a29bfe',  # 亮紫色
+    '96': '#81ecec',  # 亮青色
+    '97': '#ffffff',  # 亮白色
+}
 
 
 def detect_terminal() -> str:
@@ -85,6 +107,66 @@ def get_terminal_attach_command(terminal: str, session_name: str) -> str:
         return f"{terminal} -e bash -c 'tmux attach -t {session_name}; exec bash'"
 
 
+def parse_ansi_to_html(text: str) -> str:
+    """将ANSI颜色代码转换为HTML
+
+    Args:
+        text: 包含ANSI转义序列的文本
+
+    Returns:
+        转换后的HTML文本
+    """
+    # 转义HTML特殊字符（但保留ANSI代码）
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    # ANSI转义序列正则
+    ansi_pattern = re.compile(r'\x1b\[([0-9;]*)m')
+
+    result = []
+    current_color = None
+    last_end = 0
+
+    for match in ansi_pattern.finditer(text):
+        # 添加之前的文本
+        if match.start() > last_end:
+            chunk = text[last_end:match.start()]
+            if current_color:
+                result.append(f'<span style="color:{current_color}">{chunk}</span>')
+            else:
+                result.append(chunk)
+
+        # 解析颜色代码
+        codes = match.group(1).split(';')
+        if codes == ['0'] or codes == ['']:
+            current_color = None  # 重置
+        else:
+            for code in codes:
+                if code in ANSI_COLORS:
+                    current_color = ANSI_COLORS[code]
+                elif code == '0':
+                    current_color = None
+                elif code == '1':
+                    pass  # 粗体，暂不处理
+
+        last_end = match.end()
+
+    # 添加剩余文本
+    if last_end < len(text):
+        chunk = text[last_end:]
+        if current_color:
+            result.append(f'<span style="color:{current_color}">{chunk}</span>')
+        else:
+            result.append(chunk)
+
+    html = ''.join(result)
+
+    # 处理换行，保留空格
+    html = html.replace('\n', '<br>')
+    html = html.replace('  ', '&nbsp;&nbsp;')
+
+    return html
+
+
 class MainWindow(QMainWindow):
     """主窗口"""
 
@@ -100,6 +182,13 @@ class MainWindow(QMainWindow):
         self.current_workspace: WorkspaceInfo = None
         self.current_session: SessionInfo = None
 
+        # Log panel state
+        self.log_panel_visible = False
+        self.log_auto_scroll = True
+        # 日志存储：按 session_name 存储
+        self.session_logs: dict = {}  # {session_name: log_content}
+        self.last_log_position: dict = {}  # {session_name: last_line_count}
+
         self.setWindowTitle("Isaac Lab Train Tool")
         self.setMinimumSize(800, 600)
 
@@ -113,6 +202,10 @@ class MainWindow(QMainWindow):
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self._check_session_status)
         self.status_timer.start(2000)  # 每2秒检查一次
+
+        # 日志自动刷新定时器
+        self.log_refresh_timer = QTimer()
+        self.log_refresh_timer.timeout.connect(self._auto_refresh_log)
 
     def _init_menu(self):
         """初始化菜单栏"""
@@ -166,7 +259,14 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        main_layout = QVBoxLayout(central_widget)
+        # 主水平分割器
+        main_splitter = QSplitter(Qt.Horizontal)
+        main_splitter.setHandleWidth(1)
+
+        # 左侧主面板
+        left_widget = QWidget()
+        main_layout = QVBoxLayout(left_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Workspace选择区域
         workspace_group = QGroupBox("Workspace")
@@ -373,10 +473,17 @@ class MainWindow(QMainWindow):
         self.stop_btn = QPushButton("停止")
         self.stop_btn.clicked.connect(self._stop_training)
         self.stop_btn.setEnabled(False)
+        self.stop_btn.setToolTip("终止当前训练会话")
+        self.stop_btn.setStyleSheet("background-color: #ff6b6b;")
 
         self.attach_btn = QPushButton("附加到终端")
         self.attach_btn.clicked.connect(self._attach_to_session)
         self.attach_btn.setEnabled(False)
+
+        # Log面板切换按钮
+        self.toggle_log_btn = QPushButton("日志")
+        self.toggle_log_btn.setCheckable(True)
+        self.toggle_log_btn.clicked.connect(self._toggle_log_panel)
 
         control_layout.addWidget(self.settings_btn)
         control_layout.addWidget(self.save_params_btn)
@@ -384,6 +491,7 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.run_btn)
         control_layout.addWidget(self.stop_btn)
         control_layout.addWidget(self.attach_btn)
+        control_layout.addWidget(self.toggle_log_btn)
 
         main_layout.addLayout(control_layout)
 
@@ -399,6 +507,72 @@ class MainWindow(QMainWindow):
 
         status_group.setLayout(status_layout)
         main_layout.addWidget(status_group)
+
+        # 将左侧面板添加到分割器
+        main_splitter.addWidget(left_widget)
+
+        # 右侧日志面板
+        log_widget = QWidget()
+        log_layout = QVBoxLayout(log_widget)
+        log_layout.setContentsMargins(0, 0, 0, 0)
+
+        log_group = QGroupBox("日志面板")
+        log_group_layout = QVBoxLayout(log_group)
+
+        # 日志工具栏
+        log_toolbar = QHBoxLayout()
+
+        self.log_refresh_btn = QPushButton("刷新")
+        self.log_refresh_btn.clicked.connect(self._refresh_log)
+
+        self.log_save_btn = QPushButton("保存")
+        self.log_save_btn.clicked.connect(self._save_log)
+
+        self.log_clear_btn = QPushButton("清除")
+        self.log_clear_btn.clicked.connect(self._clear_log)
+
+        self.log_auto_scroll_check = QCheckBox("自动滚动")
+        self.log_auto_scroll_check.setChecked(True)
+        self.log_auto_scroll_check.stateChanged.connect(self._on_auto_scroll_changed)
+
+        log_toolbar.addWidget(self.log_refresh_btn)
+        log_toolbar.addWidget(self.log_save_btn)
+        log_toolbar.addWidget(self.log_clear_btn)
+        log_toolbar.addStretch()
+        log_toolbar.addWidget(self.log_auto_scroll_check)
+
+        log_group_layout.addLayout(log_toolbar)
+
+        # 日志内容区域
+        self.log_text_edit = QTextEdit()
+        self.log_text_edit.setReadOnly(True)
+        self.log_text_edit.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 11px;")
+        self.log_text_edit.setPlaceholderText("日志内容将显示在这里...")
+        log_group_layout.addWidget(self.log_text_edit)
+
+        log_group.setLayout(log_group_layout)
+        log_layout.addWidget(log_group)
+
+        main_splitter.addWidget(log_widget)
+
+        # 设置分割器初始大小比例
+        main_splitter.setStretchFactor(0, 1)  # 左侧占1份
+        main_splitter.setStretchFactor(1, 1)  # 右侧占1份（日志面板更大）
+
+        # 设置日志文本框的最小宽度
+        self.log_text_edit.setMinimumWidth(400)
+
+        # 默认隐藏日志面板
+        log_widget.setVisible(False)
+
+        # 将分割器设置为主布局
+        splitter_layout = QVBoxLayout(central_widget)
+        splitter_layout.setContentsMargins(5, 5, 5, 5)
+        splitter_layout.addWidget(main_splitter)
+
+        # 保存引用
+        self.main_splitter = main_splitter
+        self.log_widget = log_widget
 
         # 状态栏
         self.statusBar().showMessage("就绪")
@@ -450,6 +624,12 @@ class MainWindow(QMainWindow):
         self.attach_btn.setText(i18n.t("btn.attach"))
         self.train_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
         self.play_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
+
+        # 日志面板按钮
+        self.log_refresh_btn.setText(i18n.t("log.refresh"))
+        self.log_save_btn.setText(i18n.t("log.save"))
+        self.log_clear_btn.setText(i18n.t("log.clear"))
+        self.log_auto_scroll_check.setText(i18n.t("log.auto_scroll"))
 
         # 更新状态栏
         self.statusBar().showMessage(i18n.t("status.ready"))
@@ -947,11 +1127,12 @@ class MainWindow(QMainWindow):
 
     def _update_run_button(self):
         """更新运行按钮状态"""
+        # 当没有 session 或 session 已停止时，可以运行
         can_run = (
             self.current_workspace is not None and
             self.script_dir_combo.count() > 0 and
             self.task_combo.count() > 0 and
-            self.current_session is None
+            (self.current_session is None or self.current_session.status == "stopped")
         )
         self.run_btn.setEnabled(can_run)
 
@@ -1075,7 +1256,8 @@ class MainWindow(QMainWindow):
                 task_id=self.task_combo.currentData(),
                 mode=Mode.PLAY if self._is_play_task() else Mode.TRAIN,
                 script_path=self.script_dir_combo.currentText(),
-                status="running"
+                status="running",
+                start_time=datetime.now().timestamp()
             )
 
             self._update_session_status()
@@ -1083,25 +1265,180 @@ class MainWindow(QMainWindow):
             self.stop_btn.setEnabled(True)
             self.attach_btn.setEnabled(True)
 
+            # 初始化新 session 的日志存储
+            if session_name not in self.session_logs:
+                self.session_logs[session_name] = ""
+            self.log_text_edit.clear()
+
+            if self.log_panel_visible:
+                self.log_refresh_timer.start(1000)  # 每秒刷新一次
+
             self.statusBar().showMessage(f"已启动会话: {session_name}")
 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"启动失败: {e}")
 
     def _stop_training(self):
-        """停止训练"""
+        """停止训练 - 直接终止会话"""
         if not self.current_session:
             return
 
         reply = QMessageBox.question(
             self, "确认",
-            "确定要停止当前训练吗？\n这会发送Ctrl+C到训练进程。",
+            "确定要停止当前训练吗？\n这会终止tmux会话。",
             QMessageBox.Yes | QMessageBox.No
         )
 
         if reply == QMessageBox.Yes:
-            self.tmux_manager.send_interrupt(self.current_session.session_name)
-            self.statusBar().showMessage("已发送中断信号")
+            # 自动保存日志
+            if self.config_manager.config.auto_save_log:
+                self._auto_save_log()
+
+            self.tmux_manager.kill_session(self.current_session.session_name)
+            self.current_session = None
+            self._update_session_status()
+            self._update_run_button()
+            self.stop_btn.setEnabled(False)
+            self.attach_btn.setEnabled(False)
+
+            # 停止日志刷新，但保留内容
+            self.log_refresh_timer.stop()
+            self.statusBar().showMessage("会话已终止")
+
+    def _toggle_log_panel(self):
+        """切换日志面板显示"""
+        self.log_panel_visible = not self.log_panel_visible
+        self.log_widget.setVisible(self.log_panel_visible)
+        self.toggle_log_btn.setChecked(self.log_panel_visible)
+
+        if self.log_panel_visible:
+            # 显示日志面板时，启动自动刷新
+            if self.current_session:
+                self._refresh_log()
+                self.log_refresh_timer.start(1000)  # 每秒刷新一次
+        else:
+            # 隐藏日志面板时，停止自动刷新
+            self.log_refresh_timer.stop()
+
+    def _auto_refresh_log(self):
+        """自动刷新日志"""
+        if self.log_panel_visible and self.current_session:
+            # 即使 session 状态是 stopped，也尝试刷新（可能还有日志）
+            self._refresh_log()
+
+    def _refresh_log(self):
+        """刷新日志内容 - 累积显示当前 session 的日志"""
+        if not self.current_session:
+            return
+
+        session_name = self.current_session.session_name
+
+        # 即使 session 不存在，也尝试从缓存显示
+        if not self.tmux_manager.session_exists(session_name):
+            # 从缓存显示
+            cached = self.session_logs.get(session_name, "")
+            if cached:
+                html = parse_ansi_to_html(cached)
+                self.log_text_edit.setHtml(f"<pre style='margin:0;white-space:pre-wrap;'>{html}</pre>")
+            return
+
+        output = self.tmux_manager.capture_output(session_name, lines=2000)
+        if output:
+            # 存储当前 session 的日志
+            self.session_logs[session_name] = output
+
+            # 显示当前 session 的日志
+            html = parse_ansi_to_html(output)
+            self.log_text_edit.setHtml(f"<pre style='margin:0;white-space:pre-wrap;'>{html}</pre>")
+
+            if self.log_auto_scroll:
+                cursor = self.log_text_edit.textCursor()
+                cursor.movePosition(QTextCursor.End)
+                self.log_text_edit.setTextCursor(cursor)
+
+    def _save_log(self):
+        """保存日志到文件"""
+        content = self.log_text_edit.toPlainText()
+        if not content.strip():
+            QMessageBox.information(self, "提示", "无日志内容")
+            return
+
+        # 使用配置的日志保存路径
+        log_path = self.config_manager.config.log_save_path
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"log_{timestamp}.txt"
+
+        if log_path:
+            default_path = os.path.join(log_path, default_name)
+        else:
+            default_path = default_name
+
+        path, _ = QFileDialog.getSaveFileName(
+            self, "保存日志", default_path, "Text Files (*.txt)"
+        )
+
+        if path:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            self.statusBar().showMessage(f"日志已保存到: {path}")
+
+    def _auto_save_log(self):
+        """自动保存日志"""
+        # 直接从 tmux 获取日志，确保获取到最新内容
+        if self.current_session:
+            session_name = self.current_session.session_name
+            # 尝试从 tmux 获取日志
+            if self.tmux_manager.session_exists(session_name):
+                content = self.tmux_manager.capture_output(session_name, lines=5000)
+            else:
+                # 如果 session 已结束，从缓存获取
+                content = self.session_logs.get(session_name, "")
+        else:
+            content = self.log_text_edit.toPlainText()
+
+        if not content or not content.strip():
+            print("日志内容为空，跳过保存")
+            return
+
+        # 确定保存路径
+        log_path = self.config_manager.config.log_save_path
+        if not log_path:
+            # 如果没有设置路径，使用 workspace 的 logs 目录
+            if self.current_workspace and self.current_workspace.path:
+                log_path = os.path.join(self.current_workspace.path, "logs", "saved_logs")
+            else:
+                log_path = os.path.expanduser("~/isaaclab_logs")
+
+        # 确保目录存在
+        try:
+            os.makedirs(log_path, exist_ok=True)
+        except Exception as e:
+            self.statusBar().showMessage(f"创建日志目录失败: {e}")
+            print(f"创建日志目录失败: {e}")
+            return
+
+        session_name = self.current_session.session_name if self.current_session else "unknown"
+        # 清理 session 名称中的特殊字符
+        safe_session_name = session_name.replace(":", "_").replace("/", "_")
+        filename = f"{safe_session_name}.txt"
+        path = os.path.join(log_path, filename)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            self.statusBar().showMessage(f"日志已自动保存到: {path}")
+            print(f"日志已自动保存到: {path}")
+        except Exception as e:
+            self.statusBar().showMessage(f"自动保存日志失败: {e}")
+            print(f"自动保存日志失败: {e}")
+
+    def _clear_log(self):
+        """清除日志内容"""
+        self.log_text_edit.clear()
+
+    def _on_auto_scroll_changed(self, state):
+        """自动滚动选项变化"""
+        self.log_auto_scroll = state == Qt.Checked
 
     def _attach_to_session(self):
         """附加到当前会话的终端"""
@@ -1126,15 +1463,63 @@ class MainWindow(QMainWindow):
         if not self.current_session:
             return
 
-        exists = self.tmux_manager.session_exists(self.current_session.session_name)
+        session_name = self.current_session.session_name
+        exists = self.tmux_manager.session_exists(session_name)
 
         if not exists:
-            # 会话已结束
-            self.current_session = None
+            # 会话被强制终止了
+            self._on_session_ended(forced=True)
+            return
+
+        # 启动后5秒内不检查进程状态，避免误判
+        if self.current_session.start_time:
+            elapsed = datetime.now().timestamp() - self.current_session.start_time
+            if elapsed < 5:
+                # 在启动期间，确保状态是 running
+                if self.current_session.status != "running":
+                    self.current_session.status = "running"
+                    self._update_session_status()
+                return
+
+        # 检查是否有活跃进程
+        has_process = self.tmux_manager.has_active_process(session_name)
+        print(f"[DEBUG] 检查会话状态: {session_name}, has_process={has_process}, current_status={self.current_session.status}")
+
+        if not has_process and self.current_session.status == "running":
+            # 进程已结束，但保留 session
+            self.current_session.status = "stopped"
             self._update_session_status()
-            self._update_run_button()
-            self.stop_btn.setEnabled(False)
-            self.attach_btn.setEnabled(False)
+            self.stop_btn.setEnabled(True)  # 允许用户终止 session
+            self.attach_btn.setEnabled(True)  # 仍然可以附加到 session
+            self._update_run_button()  # 允许重新运行
+
+            # 自动保存日志
+            if self.config_manager.config.auto_save_log:
+                self._auto_save_log()
+
+            # 停止日志自动刷新，但保留内容
+            self.log_refresh_timer.stop()
+            self.statusBar().showMessage("训练已停止，Session 保留")
+            print(f"[DEBUG] 会话状态更新为 stopped")
+
+    def _on_session_ended(self, forced: bool = False):
+        """会话结束时的处理"""
+        # 自动保存日志
+        if self.config_manager.config.auto_save_log:
+            self._auto_save_log()
+
+        self.current_session = None
+        self._update_session_status()
+        self._update_run_button()
+        self.stop_btn.setEnabled(False)
+        self.attach_btn.setEnabled(False)
+
+        # 停止日志刷新，但保留内容
+        self.log_refresh_timer.stop()
+
+        if forced:
+            self.statusBar().showMessage("会话已强制终止")
+        else:
             self.statusBar().showMessage("会话已结束")
 
     def _update_session_status(self):

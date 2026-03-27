@@ -309,6 +309,29 @@ class ConfigDialog(QDialog):
         tmux_group.setLayout(tmux_layout)
         layout.addWidget(tmux_group)
 
+        # ========== 日志设置组 ==========
+        log_group = QGroupBox("日志设置")
+        log_layout = QFormLayout()
+
+        # 自动保存日志
+        self.auto_save_log_check = QCheckBox("自动保存日志")
+        log_layout.addRow("", self.auto_save_log_check)
+
+        # 日志保存路径
+        log_path_layout = QHBoxLayout()
+        self.log_path_edit = QLineEdit()
+        self.log_path_edit.setPlaceholderText("默认保存到当前目录")
+        log_path_layout.addWidget(self.log_path_edit)
+
+        self.browse_log_btn = QPushButton("浏览...")
+        self.browse_log_btn.clicked.connect(self._browse_log_path)
+        log_path_layout.addWidget(self.browse_log_btn)
+
+        log_layout.addRow("日志保存路径:", log_path_layout)
+
+        log_group.setLayout(log_layout)
+        layout.addWidget(log_group)
+
         # ========== 按钮 ==========
         button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
@@ -394,6 +417,14 @@ class ConfigDialog(QDialog):
         if path:
             self.manual_env_path_edit.setText(path)
 
+    def _browse_log_path(self):
+        """浏览日志保存路径"""
+        path = QFileDialog.getExistingDirectory(
+            self, "选择日志保存路径"
+        )
+        if path:
+            self.log_path_edit.setText(path)
+
     def _load_config(self):
         """加载配置到界面"""
         config = self.config_manager.config
@@ -463,6 +494,10 @@ class ConfigDialog(QDialog):
 
         self.tmux_prefix_edit.setText(config.tmux_session_prefix)
 
+        # 日志设置
+        self.auto_save_log_check.setChecked(config.auto_save_log)
+        self.log_path_edit.setText(config.log_save_path or "")
+
     def _save_and_close(self):
         """保存配置并关闭"""
         config = self.config_manager.config
@@ -518,6 +553,10 @@ class ConfigDialog(QDialog):
 
         # tmux设置
         config.tmux_session_prefix = self.tmux_prefix_edit.text()
+
+        # 日志设置
+        config.auto_save_log = self.auto_save_log_check.isChecked()
+        config.log_save_path = self.log_path_edit.text()
 
         self.config_manager.save()
         self.accept()

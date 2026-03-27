@@ -136,6 +136,56 @@ class TmuxManager:
         except Exception:
             return False
 
+    def has_active_process(self, session_name: str) -> bool:
+        """检查会话中是否有活跃进程
+
+        Args:
+            session_name: 会话名称
+
+        Returns:
+            是否有活跃进程
+        """
+        if not self.session_exists(session_name):
+            return False
+
+        # 检查 pane 当前命令
+        cmd_cmd = ["tmux", "display-message", "-t", session_name, "-p", "#{pane_current_command}"]
+        try:
+            result = subprocess.run(cmd_cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                current_cmd = result.stdout.strip().lower()
+                # 如果当前命令是 shell，说明没有运行程序
+                shell_cmds = ["bash", "zsh", "sh", "fish", "dash", "-bash", "-zsh"]
+                if current_cmd in shell_cmds:
+                    return False
+                # 如果是 python 或其他程序，说明有进程在运行
+                return True
+        except Exception:
+            pass
+
+        # 备用方法：检查子进程
+        cmd = ["tmux", "list-panes", "-t", session_name, "-F", "#{pane_pid}"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                return True  # 无法确定，假设有进程
+
+            pane_pid = result.stdout.strip()
+            if not pane_pid:
+                return True  # 无法确定，假设有进程
+
+            # 检查该PID下是否有子进程
+            try:
+                ps_cmd = ["ps", "--ppid", pane_pid, "-o", "pid=", "--no-headers"]
+                ps_result = subprocess.run(ps_cmd, capture_output=True, text=True)
+                children = ps_result.stdout.strip()
+                return bool(children)
+            except Exception:
+                return True  # 无法确定，假设有进程
+
+        except Exception:
+            return True  # 无法确定，假设有进程
+
     def capture_output(self, session_name: str, lines: int = 100) -> str:
         """捕获tmux会话的输出
 
@@ -144,12 +194,13 @@ class TmuxManager:
             lines: 捕获的行数
 
         Returns:
-            会话输出内容
+            会话输出内容（包含ANSI颜色代码）
         """
         if not self.session_exists(session_name):
             return ""
 
-        cmd = ["tmux", "capture-pane", "-t", session_name, "-p", "-S", f"-{lines}"]
+        # 添加 -e 标志来保留ANSI转义序列
+        cmd = ["tmux", "capture-pane", "-t", session_name, "-p", "-e", "-S", f"-{lines}"]
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)

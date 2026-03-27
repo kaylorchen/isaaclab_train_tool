@@ -27,6 +27,10 @@ class AppConfig:
     last_extra_params: str = ""
     # 语言设置
     language: str = "zh"  # zh or en
+    # 日志保存路径
+    log_save_path: str = ""
+    # 自动保存日志
+    auto_save_log: bool = False
 
     def __post_init__(self):
         if self.default_params is None:
@@ -69,6 +73,8 @@ class AppConfig:
             last_mode=data.get("last_mode", "train"),
             last_extra_params=data.get("last_extra_params", ""),
             language=data.get("language", "zh"),
+            log_save_path=data.get("log_save_path", ""),
+            auto_save_log=data.get("auto_save_log", False),
         )
 
 

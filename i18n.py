@@ -135,6 +135,25 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.venv_not_found": "未找到虚拟环境。\n您可以尝试手动输入。",
         "config.scan_complete": "扫描完成",
         "config.found_envs": "找到 {} 个{}环境",
+
+        # Log Panel
+        "log.title": "日志面板",
+        "log.refresh": "刷新",
+        "log.save": "保存",
+        "log.clear": "清除",
+        "log.auto_scroll": "自动滚动",
+        "log.no_session": "无活动会话",
+        "log.saved": "日志已保存到: {}",
+        "log.save_title": "保存日志",
+        "log.no_content": "无日志内容",
+        "log.save_path": "日志保存路径:",
+        "log.save_path_placeholder": "默认保存到当前目录",
+        "log.auto_save": "自动保存日志",
+
+        # Force Stop
+        "btn.force_stop": "强制停止",
+        "msg.force_stop_confirm": "确定要强制停止吗？\n这会直接终止tmux会话。",
+        "status.force_stopped": "已强制终止会话",
     },
     LANG_EN: {
         # Menu
@@ -258,6 +277,25 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.venv_not_found": "No virtual environments found.\nYou can try manual input.",
         "config.scan_complete": "Scan complete",
         "config.found_envs": "Found {} {} environments",
+
+        # Log Panel
+        "log.title": "Log Panel",
+        "log.refresh": "Refresh",
+        "log.save": "Save",
+        "log.clear": "Clear",
+        "log.auto_scroll": "Auto Scroll",
+        "log.no_session": "No active session",
+        "log.saved": "Log saved to: {}",
+        "log.save_title": "Save Log",
+        "log.no_content": "No log content",
+        "log.save_path": "Log Save Path:",
+        "log.save_path_placeholder": "Default to current directory",
+        "log.auto_save": "Auto Save Log",
+
+        # Force Stop
+        "btn.force_stop": "Force Stop",
+        "msg.force_stop_confirm": "Are you sure you want to force stop?\nThis will terminate the tmux session.",
+        "status.force_stopped": "Session forcefully terminated",
     }
 }
 
