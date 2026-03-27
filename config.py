@@ -25,6 +25,8 @@ class AppConfig:
     last_script_dir: str = ""
     last_mode: str = "train"
     last_extra_params: str = ""
+    # 语言设置
+    language: str = "zh"  # zh or en
 
     def __post_init__(self):
         if self.default_params is None:
@@ -66,6 +68,7 @@ class AppConfig:
             last_script_dir=data.get("last_script_dir", ""),
             last_mode=data.get("last_mode", "train"),
             last_extra_params=data.get("last_extra_params", ""),
+            language=data.get("language", "zh"),
         )
 
 

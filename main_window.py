@@ -20,6 +20,7 @@ from config import ConfigManager
 from config_dialog import ConfigDialog
 from workspace_scanner import WorkspaceScanner
 from tmux_manager import get_tmux_manager
+import i18n
 
 
 def detect_terminal() -> str:
@@ -93,6 +94,9 @@ class MainWindow(QMainWindow):
         self.config_manager = ConfigManager()
         self.tmux_manager = get_tmux_manager()
 
+        # 设置语言
+        i18n.set_language(self.config_manager.config.language)
+
         self.current_workspace: WorkspaceInfo = None
         self.current_session: SessionInfo = None
 
@@ -115,38 +119,47 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
 
         # 文件菜单
-        file_menu = menubar.addMenu("文件")
+        self.file_menu = menubar.addMenu(i18n.t("menu.file"))
 
-        open_action = QAction("打开Workspace目录", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self._open_workspace_dir)
-        file_menu.addAction(open_action)
+        self.open_action = QAction(i18n.t("menu.open_workspace"), self)
+        self.open_action.setShortcut("Ctrl+O")
+        self.open_action.triggered.connect(self._open_workspace_dir)
+        self.file_menu.addAction(self.open_action)
 
-        browse_action = QAction("选择Workspace...", self)
-        browse_action.triggered.connect(self._browse_workspace)
-        file_menu.addAction(browse_action)
+        self.browse_action = QAction(i18n.t("menu.select_workspace"), self)
+        self.browse_action.triggered.connect(self._browse_workspace)
+        self.file_menu.addAction(self.browse_action)
 
-        file_menu.addSeparator()
+        self.file_menu.addSeparator()
 
-        exit_action = QAction("退出", self)
-        exit_action.setShortcut("Ctrl+Q")
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
+        self.exit_action = QAction(i18n.t("menu.exit"), self)
+        self.exit_action.setShortcut("Ctrl+Q")
+        self.exit_action.triggered.connect(self.close)
+        self.file_menu.addAction(self.exit_action)
 
         # 编辑菜单
-        edit_menu = menubar.addMenu("编辑")
+        self.edit_menu = menubar.addMenu(i18n.t("menu.edit"))
 
-        config_action = QAction("设置...", self)
-        config_action.setShortcut("Ctrl+,")
-        config_action.triggered.connect(self._show_config_dialog)
-        edit_menu.addAction(config_action)
+        self.config_action = QAction(i18n.t("menu.settings"), self)
+        self.config_action.setShortcut("Ctrl+,")
+        self.config_action.triggered.connect(self._show_config_dialog)
+        self.edit_menu.addAction(self.config_action)
+
+        # 语言子菜单
+        self.lang_menu = self.edit_menu.addMenu(i18n.t("menu.language"))
+        self.lang_zh_action = QAction("中文", self)
+        self.lang_zh_action.triggered.connect(lambda: self._switch_language("zh"))
+        self.lang_en_action = QAction("English", self)
+        self.lang_en_action.triggered.connect(lambda: self._switch_language("en"))
+        self.lang_menu.addAction(self.lang_zh_action)
+        self.lang_menu.addAction(self.lang_en_action)
 
         # 帮助菜单
-        help_menu = menubar.addMenu("帮助")
+        self.help_menu = menubar.addMenu(i18n.t("menu.help"))
 
-        about_action = QAction("关于", self)
-        about_action.triggered.connect(self._show_about)
-        help_menu.addAction(about_action)
+        self.about_action = QAction(i18n.t("menu.about"), self)
+        self.about_action.triggered.connect(self._show_about)
+        self.help_menu.addAction(self.about_action)
 
     def _init_ui(self):
         """初始化UI"""
@@ -401,6 +414,46 @@ class MainWindow(QMainWindow):
         config = self.config_manager.config
         if config.last_extra_params:
             self.extra_params_edit.setText(config.last_extra_params)
+
+    def _switch_language(self, lang: str):
+        """切换语言"""
+        if lang == i18n.get_language():
+            return
+
+        i18n.set_language(lang)
+        self.config_manager.config.language = lang
+        self.config_manager.save()
+        self._update_ui_text()
+        QMessageBox.information(self, i18n.t("menu.settings"),
+                               "Language changed. Restart the application for full effect." if lang == "en"
+                               else "语言已更改，重启应用以完全生效。")
+
+    def _update_ui_text(self):
+        """更新所有UI文本"""
+        # 更新菜单
+        self.file_menu.setTitle(i18n.t("menu.file"))
+        self.open_action.setText(i18n.t("menu.open_workspace"))
+        self.browse_action.setText(i18n.t("menu.select_workspace"))
+        self.exit_action.setText(i18n.t("menu.exit"))
+        self.edit_menu.setTitle(i18n.t("menu.edit"))
+        self.config_action.setText(i18n.t("menu.settings"))
+        self.lang_menu.setTitle(i18n.t("menu.language"))
+        self.help_menu.setTitle(i18n.t("menu.help"))
+        self.about_action.setText(i18n.t("menu.about"))
+
+        # 更新按钮
+        self.browse_btn.setText(i18n.t("label.browse"))
+        self.scan_btn.setText(i18n.t("label.scan"))
+        self.settings_btn.setText(i18n.t("btn.settings"))
+        self.save_params_btn.setText(i18n.t("btn.save_params"))
+        self.run_btn.setText(i18n.t("btn.run"))
+        self.stop_btn.setText(i18n.t("btn.stop"))
+        self.attach_btn.setText(i18n.t("btn.attach"))
+        self.train_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
+        self.play_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
+
+        # 更新状态栏
+        self.statusBar().showMessage(i18n.t("status.ready"))
 
     def _load_last_session_config(self):
         """加载上次会话配置"""
