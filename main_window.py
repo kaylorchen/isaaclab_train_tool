@@ -964,15 +964,8 @@ class MainWindow(QMainWindow):
         if not self.current_workspace:
             return
 
-        mode = Mode.TRAIN if self.mode_combo.currentIndex() == 0 else Mode.PLAY
-
+        # 显示所有任务，不根据模式过滤
         for task in self.current_workspace.tasks:
-            # 根据模式过滤任务
-            if mode == Mode.TRAIN and task.is_play_task:
-                continue
-            if mode == Mode.PLAY and not task.is_play_task:
-                continue
-
             self.task_combo.addItem(task.display_name, task.task_id)
 
         self._update_run_button()
