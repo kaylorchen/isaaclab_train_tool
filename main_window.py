@@ -183,14 +183,12 @@ class MainWindow(QMainWindow):
         self.current_session: SessionInfo = None
 
         # Log panel state
-        self.log_panel_visible = False
         self.log_auto_scroll = True
         # 日志存储：按 session_name 存储
         self.session_logs: dict = {}  # {session_name: log_content}
-        self.last_log_position: dict = {}  # {session_name: last_line_count}
 
         self.setWindowTitle("Isaac Lab Train Tool")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1400, 800)
 
         self._init_ui()
         self._init_menu()
@@ -480,18 +478,12 @@ class MainWindow(QMainWindow):
         self.attach_btn.clicked.connect(self._attach_to_session)
         self.attach_btn.setEnabled(False)
 
-        # Log面板切换按钮
-        self.toggle_log_btn = QPushButton("日志")
-        self.toggle_log_btn.setCheckable(True)
-        self.toggle_log_btn.clicked.connect(self._toggle_log_panel)
-
         control_layout.addWidget(self.settings_btn)
         control_layout.addWidget(self.save_params_btn)
         control_layout.addStretch()
         control_layout.addWidget(self.run_btn)
         control_layout.addWidget(self.stop_btn)
         control_layout.addWidget(self.attach_btn)
-        control_layout.addWidget(self.toggle_log_btn)
 
         main_layout.addLayout(control_layout)
 
@@ -546,8 +538,10 @@ class MainWindow(QMainWindow):
         # 日志内容区域
         self.log_text_edit = QTextEdit()
         self.log_text_edit.setReadOnly(True)
-        self.log_text_edit.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 11px;")
+        # 使用较小字体以显示更多字符（约190字符宽度）
+        self.log_text_edit.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 9px;")
         self.log_text_edit.setPlaceholderText("日志内容将显示在这里...")
+        self.log_text_edit.setLineWrapMode(QTextEdit.NoWrap)  # 不自动换行
         log_group_layout.addWidget(self.log_text_edit)
 
         log_group.setLayout(log_group_layout)
@@ -555,15 +549,13 @@ class MainWindow(QMainWindow):
 
         main_splitter.addWidget(log_widget)
 
-        # 设置分割器初始大小比例
-        main_splitter.setStretchFactor(0, 1)  # 左侧占1份
-        main_splitter.setStretchFactor(1, 1)  # 右侧占1份（日志面板更大）
+        # 设置分割器大小比例 - 日志面板占更多宽度
+        # 左侧控制面板：右侧日志面板 = 1 : 3
+        main_splitter.setStretchFactor(0, 1)
+        main_splitter.setStretchFactor(1, 3)
 
-        # 设置日志文本框的最小宽度
-        self.log_text_edit.setMinimumWidth(400)
-
-        # 默认隐藏日志面板
-        log_widget.setVisible(False)
+        # 设置日志文本框的最小宽度（约190字符 * 9px = 1710px）
+        self.log_text_edit.setMinimumWidth(1200)
 
         # 将分割器设置为主布局
         splitter_layout = QVBoxLayout(central_widget)
@@ -1270,8 +1262,8 @@ class MainWindow(QMainWindow):
                 self.session_logs[session_name] = ""
             self.log_text_edit.clear()
 
-            if self.log_panel_visible:
-                self.log_refresh_timer.start(1000)  # 每秒刷新一次
+            # 启动日志自动刷新
+            self.log_refresh_timer.start(1000)  # 每秒刷新一次
 
             self.statusBar().showMessage(f"已启动会话: {session_name}")
 
@@ -1305,24 +1297,9 @@ class MainWindow(QMainWindow):
             self.log_refresh_timer.stop()
             self.statusBar().showMessage("会话已终止")
 
-    def _toggle_log_panel(self):
-        """切换日志面板显示"""
-        self.log_panel_visible = not self.log_panel_visible
-        self.log_widget.setVisible(self.log_panel_visible)
-        self.toggle_log_btn.setChecked(self.log_panel_visible)
-
-        if self.log_panel_visible:
-            # 显示日志面板时，启动自动刷新
-            if self.current_session:
-                self._refresh_log()
-                self.log_refresh_timer.start(1000)  # 每秒刷新一次
-        else:
-            # 隐藏日志面板时，停止自动刷新
-            self.log_refresh_timer.stop()
-
     def _auto_refresh_log(self):
         """自动刷新日志"""
-        if self.log_panel_visible and self.current_session:
+        if self.current_session:
             # 即使 session 状态是 stopped，也尝试刷新（可能还有日志）
             self._refresh_log()
 
