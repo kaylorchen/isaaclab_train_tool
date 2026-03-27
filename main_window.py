@@ -198,16 +198,15 @@ class MainWindow(QMainWindow):
         self.script_dir_combo.currentTextChanged.connect(self._on_script_dir_changed)
         selection_layout.addRow("脚本目录:", self.script_dir_combo)
 
-        # 模式
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["Train", "Play"])
-        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
-        selection_layout.addRow("模式:", self.mode_combo)
-
         # 任务
         self.task_combo = QComboBox()
         self.task_combo.currentIndexChanged.connect(self._on_task_changed)
         selection_layout.addRow("任务:", self.task_combo)
+
+        # 任务类型提示
+        self.task_type_label = QLabel("")
+        self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+        selection_layout.addRow("类型:", self.task_type_label)
 
         selection_group.setLayout(selection_layout)
         main_layout.addWidget(selection_group)
@@ -458,12 +457,6 @@ class MainWindow(QMainWindow):
     def _load_last_session_config(self):
         """加载上次会话配置"""
         config = self.config_manager.config
-
-        # 加载上次的模式
-        if config.last_mode == "play":
-            self.mode_combo.setCurrentIndex(1)
-        else:
-            self.mode_combo.setCurrentIndex(0)
 
         # 加载上次的额外参数
         if config.last_extra_params:
@@ -847,8 +840,7 @@ class MainWindow(QMainWindow):
 
             # 启用运行记录刷新按钮
             self.train_refresh_runs_btn.setEnabled(True)
-            if self.mode_combo.currentIndex() == 1:  # Play模式
-                self.play_refresh_runs_btn.setEnabled(True)
+            self.play_refresh_runs_btn.setEnabled(True)
 
             # 保存到最近使用的workspace
             self.config_manager.add_recent_workspace(path)
@@ -874,47 +866,41 @@ class MainWindow(QMainWindow):
         if not script_dir or not self.current_workspace:
             return
 
-        # 获取该目录下的脚本
-        scanner = WorkspaceScanner(self.current_workspace.path)
-        train_script, play_script = scanner.get_script_by_dir(script_dir)
-
-        # 更新模式可用性
-        self.mode_combo.setItemText(0, "Train" if train_script else "Train (不可用)")
-        self.mode_combo.setItemText(1, "Play" if play_script else "Play (不可用)")
-
-        # 启用/禁用模式
-        model = self.mode_combo.model()
-        model.item(0).setEnabled(train_script is not None)
-        model.item(1).setEnabled(play_script is not None)
-
-        # 选择可用模式
-        if train_script:
-            self.mode_combo.setCurrentIndex(0)
-        elif play_script:
-            self.mode_combo.setCurrentIndex(1)
-
         self._update_run_button()
 
-    def _on_mode_changed(self, index: int):
-        """模式变化"""
-        # 切换参数页
-        self.params_stack.setCurrentIndex(index)
-
-        # 启用/禁用Play模式的刷新按钮
-        if index == 1:  # Play模式
-            self.play_refresh_runs_btn.setEnabled(self.current_workspace is not None)
-
-        self._update_cmd_preview()
-
     def _on_task_changed(self, index: int):
-        """任务变化时，刷新运行记录"""
-        # 刷新Train模式的runs
+        """任务变化时，根据任务名判断类型"""
+        task_id = self.task_combo.currentData()
+        if not task_id:
+            self.task_type_label.setText("")
+            return
+
+        # 判断是 Train 还是 Play 任务
+        is_play = "-Play" in task_id
+
+        # 更新类型标签
+        if is_play:
+            self.task_type_label.setText("🎮 Play (播放)")
+            self.task_type_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            self.params_stack.setCurrentIndex(1)  # Play参数页
+        else:
+            self.task_type_label.setText("🎯 Train (训练)")
+            self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+            self.params_stack.setCurrentIndex(0)  # Train参数页
+
+        # 刷新运行记录
         if self.train_resume_check.isChecked() and self.train_refresh_runs_btn.isEnabled():
             self._refresh_train_runs()
-        # 刷新Play模式的runs
         if self.play_refresh_runs_btn.isEnabled():
             self._refresh_play_runs()
         self._update_cmd_preview()
+
+    def _is_play_task(self) -> bool:
+        """判断当前任务是否是 Play 任务"""
+        task_id = self.task_combo.currentData()
+        if task_id:
+            return "-Play" in task_id
+        return False
 
     def _save_current_params(self):
         """保存当前参数到配置文件"""
@@ -940,7 +926,7 @@ class MainWindow(QMainWindow):
         # 保存当前会话配置
         config.last_task = self.task_combo.currentData() or ""
         config.last_script_dir = self.script_dir_combo.currentText() or ""
-        config.last_mode = "play" if self.mode_combo.currentIndex() == 1 else "train"
+        config.last_mode = "play" if self._is_play_task() else "train"
         config.last_extra_params = self.extra_params_edit.text()
 
         self.config_manager.save()
@@ -972,7 +958,7 @@ class MainWindow(QMainWindow):
     def _build_command(self) -> str:
         """构建执行命令"""
         script_dir = self.script_dir_combo.currentText()
-        is_train = self.mode_combo.currentIndex() == 0
+        is_train = not self._is_play_task()
         mode = "train" if is_train else "play"
         task_id = self.task_combo.currentData()
 
@@ -1087,7 +1073,7 @@ class MainWindow(QMainWindow):
                 session_name=session_name,
                 workspace_path=self.current_workspace.path,
                 task_id=self.task_combo.currentData(),
-                mode=Mode.TRAIN if self.mode_combo.currentIndex() == 0 else Mode.PLAY,
+                mode=Mode.PLAY if self._is_play_task() else Mode.TRAIN,
                 script_path=self.script_dir_combo.currentText(),
                 status="running"
             )
@@ -1193,7 +1179,7 @@ class MainWindow(QMainWindow):
         config = self.config_manager.config
         config.last_task = self.task_combo.currentData() or ""
         config.last_script_dir = self.script_dir_combo.currentText() or ""
-        config.last_mode = "play" if self.mode_combo.currentIndex() == 1 else "train"
+        config.last_mode = "play" if self._is_play_task() else "train"
         config.last_extra_params = self.extra_params_edit.text()
 
         # 保存首页当前参数为默认值
