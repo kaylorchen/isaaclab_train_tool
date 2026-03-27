@@ -897,24 +897,13 @@ class MainWindow(QMainWindow):
 
     def _on_mode_changed(self, index: int):
         """模式变化"""
-        # 保存当前任务
-        current_task = self.task_combo.currentData()
-
         # 切换参数页
         self.params_stack.setCurrentIndex(index)
-        self._update_task_list()
 
-        # 恢复任务选择
-        if current_task:
-            for i in range(self.task_combo.count()):
-                if self.task_combo.itemData(i) == current_task:
-                    self.task_combo.setCurrentIndex(i)
-                    break
-
-        self._update_run_button()
         # 启用/禁用Play模式的刷新按钮
         if index == 1:  # Play模式
             self.play_refresh_runs_btn.setEnabled(self.current_workspace is not None)
+
         self._update_cmd_preview()
 
     def _on_task_changed(self, index: int):
