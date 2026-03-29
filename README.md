@@ -1,5 +1,7 @@
 # Isaac Lab Train Tool
 
+[中文文档](README_CN.md)
+
 A PyQt5-based GUI tool for managing Isaac Lab training and play sessions.
 
 ## Features
