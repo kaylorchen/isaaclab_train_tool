@@ -12,10 +12,10 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QGroupBox,
     QSpinBox, QCheckBox, QMessageBox, QFileDialog, QListWidget,
     QListWidgetItem, QSplitter, QTextEdit, QStatusBar, QMenu, QAction,
-    QMenuBar, QStackedWidget
+    QMenuBar, QStackedWidget, QApplication
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon, QPixmap
+from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon, QPixmap, QCursor
 
 from models import Mode, WorkspaceInfo, ScriptInfo, TaskInfo, SessionInfo
 from config import ConfigManager
@@ -44,6 +44,39 @@ ANSI_COLORS = {
     '96': '#81ecec',  # 亮青色
     '97': '#ffffff',  # 亮白色
 }
+
+
+def extract_number_from_filename(filename: str) -> int:
+    """从文件名中提取数字用于排序
+
+    Args:
+        filename: 文件名，如 "model_1000.pt"
+
+    Returns:
+        int: 提取的数字，如果没有数字则返回 0
+    """
+    import re
+    # 匹配文件名中的数字（包括下划线后的数字）
+    match = re.search(r'(\d+)\.pt$', filename)
+    if match:
+        return int(match.group(1))
+    # 尝试匹配任意数字
+    numbers = re.findall(r'\d+', filename)
+    if numbers:
+        return int(numbers[-1])  # 返回最后一个数字
+    return 0
+
+
+def sort_pt_files_by_number(files: list) -> list:
+    """按文件名中的数字降序排序
+
+    Args:
+        files: 文件名列表
+
+    Returns:
+        list: 排序后的文件名列表
+    """
+    return sorted(files, key=lambda f: extract_number_from_filename(f), reverse=True)
 
 
 def detect_terminal() -> str:
@@ -325,6 +358,10 @@ class MainWindow(QMainWindow):
         self.browse_action.triggered.connect(self._browse_workspace)
         self.file_menu.addAction(self.browse_action)
 
+        self.new_project_action = QAction(i18n.t("menu.new_project"), self)
+        self.new_project_action.triggered.connect(self._create_new_project)
+        self.file_menu.addAction(self.new_project_action)
+
         self.file_menu.addSeparator()
 
         self.exit_action = QAction(i18n.t("menu.exit"), self)
@@ -394,6 +431,9 @@ class MainWindow(QMainWindow):
 
         # Workspace选择区域
         self.workspace_group = QGroupBox(i18n.t("group.workspace"))
+        workspace_main_layout = QVBoxLayout()
+
+        # 第一行：路径输入和按钮
         workspace_layout = QHBoxLayout()
 
         self.workspace_edit = QLineEdit()
@@ -410,7 +450,25 @@ class MainWindow(QMainWindow):
         workspace_layout.addWidget(self.browse_btn)
         workspace_layout.addWidget(self.scan_btn)
 
-        self.workspace_group.setLayout(workspace_layout)
+        workspace_main_layout.addLayout(workspace_layout)
+
+        # 第二行：源码安装状态和按钮
+        source_layout = QHBoxLayout()
+
+        self.source_status_label = QLabel("")
+        self.source_status_label.setStyleSheet("color: #666; font-size: 11px;")
+
+        self.install_source_btn = QPushButton(i18n.t("btn.install_source"))
+        self.install_source_btn.clicked.connect(self._toggle_source_install)
+        self.install_source_btn.setEnabled(False)
+
+        source_layout.addWidget(self.source_status_label)
+        source_layout.addStretch()
+        source_layout.addWidget(self.install_source_btn)
+
+        workspace_main_layout.addLayout(source_layout)
+
+        self.workspace_group.setLayout(workspace_main_layout)
         main_layout.addWidget(self.workspace_group)
 
         # 脚本和任务选择区域
@@ -723,6 +781,7 @@ class MainWindow(QMainWindow):
         self.file_menu.setTitle(i18n.t("menu.file"))
         self.open_action.setText(i18n.t("menu.open_workspace"))
         self.browse_action.setText(i18n.t("menu.select_workspace"))
+        self.new_project_action.setText(i18n.t("menu.new_project"))
         self.exit_action.setText(i18n.t("menu.exit"))
         self.edit_menu.setTitle(i18n.t("menu.edit"))
         self.config_action.setText(i18n.t("menu.settings"))
@@ -1002,11 +1061,11 @@ class MainWindow(QMainWindow):
             self.train_checkpoint_combo.addItem(i18n.t("label.none"), None)
             return
 
-        pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')], reverse=True)
+        pt_files = [f for f in os.listdir(run_path) if f.endswith('.pt')]
+        pt_files = sort_pt_files_by_number(pt_files)
         if pt_files:
             for pt_file in pt_files:
-                full_path = os.path.join(run_path, pt_file)
-                self.train_checkpoint_combo.addItem(pt_file, full_path)
+                self.train_checkpoint_combo.addItem(pt_file, pt_file)
         else:
             self.train_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
@@ -1084,14 +1143,14 @@ class MainWindow(QMainWindow):
         self.play_checkpoint_combo.clear()
 
         if not run_path or not os.path.isdir(run_path):
-            self.play_checkpoint_combo.addItem("无", None)
+            self.play_checkpoint_combo.addItem(i18n.t("label.none"), None)
             return
 
-        pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')], reverse=True)
+        pt_files = [f for f in os.listdir(run_path) if f.endswith('.pt')]
+        pt_files = sort_pt_files_by_number(pt_files)
         if pt_files:
             for pt_file in pt_files:
-                full_path = os.path.join(run_path, pt_file)
-                self.play_checkpoint_combo.addItem(pt_file, full_path)
+                self.play_checkpoint_combo.addItem(pt_file, pt_file)
         else:
             self.play_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
@@ -1142,12 +1201,94 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, i18n.t("msg.tip"), i18n.t("msg.no_workspace"))
 
+    def _create_new_project(self):
+        """生成新的 Isaac Lab 工程"""
+        # 检测 Isaac Lab 路径
+        python_exe = self.config_manager.get_python_executable()
+        isaaclab_path = detect_isaaclab_path(python_exe) if python_exe else ""
+
+        if not isaaclab_path:
+            QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("new_project.no_isaaclab"))
+            return
+
+        isaaclab_sh = os.path.join(isaaclab_path, "isaaclab.sh")
+        if not os.path.exists(isaaclab_sh):
+            QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("new_project.no_isaaclab"))
+            return
+
+        # 让用户选择新工程路径
+        project_path = QFileDialog.getExistingDirectory(
+            self, i18n.t("new_project.select_path")
+        )
+        if not project_path:
+            return
+
+        # 将路径复制到剪切板
+        clipboard = QApplication.clipboard()
+        clipboard.setText(project_path)
+
+        # 检测终端
+        terminal = detect_terminal()
+
+        # 获取环境激活命令
+        activation_cmd = self.config_manager.get_activation_command()
+
+        # 构建命令：在选择的路径下运行 isaaclab.sh -n（使用绝对路径）
+        # isaaclab.sh -n 会交互式地询问项目信息，需要用户在终端中操作
+        if activation_cmd:
+            cmd = f"{activation_cmd} && {isaaclab_sh} -n"
+        else:
+            cmd = f"{isaaclab_sh} -n"
+
+        # 根据终端类型构建命令
+        terminal_cmd = self._build_terminal_command(terminal, cmd, i18n.t("new_project.terminal_title"))
+
+        # 显示提示
+        QMessageBox.information(
+            self, i18n.t("new_project.title"),
+            i18n.t("new_project.path_label") + f" {project_path}\n\n" +
+            i18n.t("new_project.path_copied") + "\n\n" +
+            f"Terminal: {terminal}\n\n" +
+            "请在终端中按照提示完成项目创建。\n" +
+            "创建完成后，请手动选择新工程目录。"
+        )
+
+        # 在新终端中运行命令（工作目录为用户选择的路径）
+        import subprocess
+        subprocess.Popen(terminal_cmd, shell=True, cwd=project_path)
+
+    def _build_terminal_command(self, terminal: str, cmd: str, title: str) -> str:
+        """构建终端运行命令
+
+        Args:
+            terminal: 终端名称
+            cmd: 要执行的命令
+            title: 终端窗口标题
+
+        Returns:
+            str: 完整的终端启动命令
+        """
+        if terminal == 'gnome-terminal':
+            return f"{terminal} --title='{title}' -- bash -c '{cmd}; exec bash'"
+        elif terminal == 'konsole':
+            return f"{terminal} -e bash -c '{cmd}; exec bash'"
+        elif terminal == 'terminator':
+            return f"terminator -e 'bash -c \"{cmd}; exec bash\"'"
+        elif terminal in ['xfce4-terminal', 'mate-terminal', 'lxterminal']:
+            return f"{terminal} --title='{title}' -e bash -c '{cmd}; exec bash'"
+        elif terminal in ['tilix', 'alacritty', 'kitty']:
+            return f"{terminal} -e bash -c '{cmd}; exec bash'"
+        else:
+            return f"{terminal} -e bash -c '{cmd}; exec bash'"
+
     def _on_workspace_changed(self, path: str):
         """workspace路径变化"""
         if path and os.path.isdir(path):
+            self._check_source_install()
             self._scan_workspace()
         else:
             self._clear_workspace_info()
+            self._clear_source_status()
 
     def _scan_workspace(self):
         """扫描workspace"""
@@ -1216,6 +1357,99 @@ class MainWindow(QMainWindow):
         self.train_refresh_runs_btn.setEnabled(False)
         self.play_refresh_runs_btn.setEnabled(False)
         self.cmd_preview_edit.clear()
+
+    def _clear_source_status(self):
+        """清空源码安装状态"""
+        self.source_status_label.setText("")
+        self.source_status_label.setStyleSheet("color: #666; font-size: 11px;")
+        self.install_source_btn.setEnabled(False)
+        self.install_source_btn.setText(i18n.t("btn.install_source"))
+
+    def _check_source_install(self):
+        """检测 source 目录是否存在"""
+        workspace_path = self.workspace_edit.text()
+        source_dir = os.path.join(workspace_path, "source")
+
+        if not os.path.isdir(source_dir):
+            self._clear_source_status()
+            self.source_status_label.setText(i18n.t("source.no_source_dir"))
+            self.install_source_btn.setEnabled(False)
+            return
+
+        # 获取项目名（workspace 目录名）
+        project_name = os.path.basename(workspace_path.rstrip("/"))
+        project_source_dir = os.path.join(source_dir, project_name)
+
+        if not os.path.isdir(project_source_dir):
+            self._clear_source_status()
+            self.source_status_label.setText(i18n.t("source.no_source_dir") + f" (source/{project_name})")
+            self.install_source_btn.setEnabled(False)
+            return
+
+        # source 目录存在，启用按钮
+        self.source_status_label.setText(f"source/{project_name}")
+        self.source_status_label.setStyleSheet("color: #666; font-size: 11px;")
+        self.install_source_btn.setText(i18n.t("btn.install_source"))
+        self.install_source_btn.setEnabled(True)
+
+    def _toggle_source_install(self):
+        """安装或卸载源码"""
+        workspace_path = self.workspace_edit.text()
+
+        # 获取项目名（workspace 目录名）
+        project_name = os.path.basename(workspace_path.rstrip("/"))
+
+        # 检测终端
+        terminal = detect_terminal()
+
+        # 获取环境激活命令
+        activation_cmd = self.config_manager.get_activation_command()
+
+        # 获取 Python 可执行文件
+        python_exe = self.config_manager.get_python_executable()
+        if not python_exe or not os.path.exists(python_exe):
+            python_exe = "python3"
+
+        # 构建命令
+        if activation_cmd:
+            install_cmd = f"cd {workspace_path} && {activation_cmd} && {python_exe} -m pip install -e source/{project_name}"
+            uninstall_cmd = f"{activation_cmd} && {python_exe} -m pip uninstall {project_name}"
+        else:
+            install_cmd = f"cd {workspace_path} && {python_exe} -m pip install -e source/{project_name}"
+            uninstall_cmd = f"{python_exe} -m pip uninstall {project_name}"
+
+        # 询问用户操作
+        menu = QMenu(self)
+        install_action = menu.addAction(i18n.t("btn.install_source"))
+        uninstall_action = menu.addAction(i18n.t("btn.uninstall_source"))
+
+        action = menu.exec_(QCursor.pos())
+
+        if action == install_action:
+            # 确认安装
+            reply = QMessageBox.question(
+                self, i18n.t("msg.confirm"),
+                f"pip install -e source/{project_name}",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+
+            terminal_cmd = self._build_terminal_command(terminal, install_cmd, i18n.t("source.installing"))
+            subprocess.Popen(terminal_cmd, shell=True)
+
+        elif action == uninstall_action:
+            # 确认卸载
+            reply = QMessageBox.question(
+                self, i18n.t("msg.confirm"),
+                f"pip uninstall {project_name}",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+
+            terminal_cmd = self._build_terminal_command(terminal, uninstall_cmd, i18n.t("source.uninstalling"))
+            subprocess.Popen(terminal_cmd, shell=True)
 
     def _on_script_dir_changed(self, script_dir: str):
         """脚本目录变化"""

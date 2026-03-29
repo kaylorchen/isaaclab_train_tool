@@ -20,6 +20,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "menu.help": "帮助",
         "menu.open_workspace": "打开Workspace目录",
         "menu.select_workspace": "选择Workspace...",
+        "menu.new_project": "生成新工程...",
         "menu.exit": "退出",
         "menu.settings": "设置...",
         "menu.about": "关于",
@@ -62,6 +63,22 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "btn.attach": "附加到终端",
         "btn.refresh_runs": "刷新运行记录",
         "btn.force_stop": "强制停止",
+        "btn.install_source": "安装源码",
+        "btn.uninstall_source": "卸载源码",
+
+        # Source install status
+        "source.installed": "源码已安装",
+        "source.not_installed": "源码未安装",
+        "source.checking": "检查中...",
+        "source.no_source_dir": "未找到 source 目录",
+        "source.install_confirm": "确定要安装源码吗？\n将执行: pip install -e source/extension",
+        "source.uninstall_confirm": "确定要卸载源码吗？\n将执行: pip uninstall",
+        "source.installing": "正在安装源码...",
+        "source.uninstalling": "正在卸载源码...",
+        "source.install_success": "源码安装成功",
+        "source.uninstall_success": "源码卸载成功",
+        "source.install_failed": "源码安装失败: {}",
+        "source.uninstall_failed": "源码卸载失败: {}",
 
         # Main Window - Combobox items
         "combo.disabled": "禁用",
@@ -122,6 +139,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "isaaclab.not_configured": "Isaac Lab: 未配置Python环境（请在设置中配置）",
         "isaaclab.not_detected": "Isaac Lab: 未检测到（请确认Python环境正确）",
         "isaaclab.detected": "Isaac Lab: {}",
+
+        # New Project
+        "new_project.title": "生成新工程",
+        "new_project.select_path": "选择新工程路径",
+        "new_project.path_label": "工程路径:",
+        "new_project.create": "生成",
+        "new_project.creating": "正在生成新工程...",
+        "new_project.success": "新工程已创建: {}",
+        "new_project.failed": "生成新工程失败",
+        "new_project.no_isaaclab": "未检测到 Isaac Lab，无法生成新工程",
+        "new_project.terminal_title": "Isaac Lab - 生成新工程",
+        "new_project.path_copied": "路径已复制到剪切板",
 
         # Config Dialog
         "config.title": "设置",
@@ -190,6 +219,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "menu.help": "Help",
         "menu.open_workspace": "Open Workspace Directory",
         "menu.select_workspace": "Select Workspace...",
+        "menu.new_project": "Create New Project...",
         "menu.exit": "Exit",
         "menu.settings": "Settings...",
         "menu.about": "About",
@@ -232,6 +262,22 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "btn.attach": "Attach Terminal",
         "btn.refresh_runs": "Refresh Runs",
         "btn.force_stop": "Force Stop",
+        "btn.install_source": "Install Source",
+        "btn.uninstall_source": "Uninstall Source",
+
+        # Source install status
+        "source.installed": "Source installed",
+        "source.not_installed": "Source not installed",
+        "source.checking": "Checking...",
+        "source.no_source_dir": "source directory not found",
+        "source.install_confirm": "Install source code?\nCommand: pip install -e source/extension",
+        "source.uninstall_confirm": "Uninstall source code?\nCommand: pip uninstall",
+        "source.installing": "Installing source...",
+        "source.uninstalling": "Uninstalling source...",
+        "source.install_success": "Source installed successfully",
+        "source.uninstall_success": "Source uninstalled successfully",
+        "source.install_failed": "Source installation failed: {}",
+        "source.uninstall_failed": "Source uninstallation failed: {}",
 
         # Main Window - Combobox items
         "combo.disabled": "Disabled",
@@ -292,6 +338,18 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "isaaclab.not_configured": "Isaac Lab: Python environment not configured (please configure in Settings)",
         "isaaclab.not_detected": "Isaac Lab: Not detected (please verify Python environment)",
         "isaaclab.detected": "Isaac Lab: {}",
+
+        # New Project
+        "new_project.title": "Create New Project",
+        "new_project.select_path": "Select New Project Path",
+        "new_project.path_label": "Project Path:",
+        "new_project.create": "Create",
+        "new_project.creating": "Creating new project...",
+        "new_project.success": "New project created: {}",
+        "new_project.failed": "Failed to create new project",
+        "new_project.no_isaaclab": "Isaac Lab not detected, cannot create new project",
+        "new_project.terminal_title": "Isaac Lab - Create New Project",
+        "new_project.path_copied": "Path copied to clipboard",
 
         # Config Dialog
         "config.title": "Settings",
