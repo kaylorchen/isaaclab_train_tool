@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QMenuBar, QStackedWidget
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor
+from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon, QPixmap
 
 from models import Mode, WorkspaceInfo, ScriptInfo, TaskInfo, SessionInfo
 from config import ConfigManager
@@ -288,6 +288,11 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Isaac Lab Train Tool")
         self.setMinimumSize(1400, 800)
+
+        # 设置窗口图标
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.jpeg")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         self._init_ui()
         self._init_menu()
