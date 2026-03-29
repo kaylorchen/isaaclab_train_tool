@@ -42,19 +42,27 @@ class TmuxManager:
         if self.session_exists(session_name):
             return False
 
-        # 创建 session 时设置较大的 history-limit (50000 行)
-        cmd = ["tmux", "new-session", "-d", "-s", session_name, "-x", str(width)]
-
         try:
+            # 创建 session
+            cmd = ["tmux", "new-session", "-d", "-s", session_name, "-x", str(width)]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                # 设置 history-limit 为 50000 行
-                subprocess.run(
-                    ["tmux", "set-option", "-t", session_name, "history-limit", "50000"],
-                    capture_output=True, text=True
-                )
-                return True
-            return False
+
+            if result.returncode != 0:
+                return False
+
+            # 设置全局 history-limit（影响后续创建的session）
+            subprocess.run(
+                ["tmux", "set-option", "-g", "history-limit", "50000"],
+                capture_output=True, text=True
+            )
+
+            # 设置当前窗口的 history-limit（确保当前session生效）
+            subprocess.run(
+                ["tmux", "set-option", "-t", f"{session_name}:0", "history-limit", "50000"],
+                capture_output=True, text=True
+            )
+
+            return True
         except Exception as e:
             print(f"Error creating tmux session: {e}")
             return False
