@@ -13,6 +13,7 @@ class TmuxManager:
 
     def __init__(self):
         self._check_tmux_available()
+        self._ensure_history_limit()
 
     def _check_tmux_available(self) -> None:
         """检查tmux是否可用"""
@@ -26,6 +27,17 @@ class TmuxManager:
                 raise RuntimeError("tmux is not available")
         except FileNotFoundError:
             raise RuntimeError("tmux is not installed")
+
+    def _ensure_history_limit(self) -> None:
+        """确保全局 history-limit 设置为足够大的值"""
+        try:
+            # 尝试设置全局 history-limit（如果 tmux server 已存在）
+            subprocess.run(
+                ["tmux", "set-option", "-g", "history-limit", "50000"],
+                capture_output=True, text=True
+            )
+        except Exception:
+            pass  # 如果 tmux server 不存在，这会失败，但在创建 session 时会再次设置
 
     def create_session(self, session_name: str, width: int = 192, attach: bool = False) -> bool:
         """创建新的tmux会话
@@ -43,20 +55,24 @@ class TmuxManager:
             return False
 
         try:
-            # 创建 session
+            # 确保 tmux server 存在并设置全局 history-limit
+            # start-server 会启动 server 但不创建 session
+            subprocess.run(["tmux", "start-server"], capture_output=True, text=True)
+
+            # 设置全局 history-limit（必须在创建 session 之前）
+            subprocess.run(
+                ["tmux", "set-option", "-g", "history-limit", "50000"],
+                capture_output=True, text=True
+            )
+
+            # 创建 session（此时会使用全局 history-limit 50000）
             cmd = ["tmux", "new-session", "-d", "-s", session_name, "-x", str(width)]
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
                 return False
 
-            # 设置全局 history-limit（影响后续创建的session）
-            subprocess.run(
-                ["tmux", "set-option", "-g", "history-limit", "50000"],
-                capture_output=True, text=True
-            )
-
-            # 设置当前窗口的 history-limit（确保当前session生效）
+            # 再次设置窗口级别的 history-limit（确保生效）
             subprocess.run(
                 ["tmux", "set-option", "-t", f"{session_name}:0", "history-limit", "50000"],
                 capture_output=True, text=True
