@@ -1233,6 +1233,8 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.workspace_combo.setEditText(path)
+            # 自动扫描选择的路径
+            self._scan_workspace()
 
     def _open_workspace_dir(self):
         """打开当前workspace目录"""
