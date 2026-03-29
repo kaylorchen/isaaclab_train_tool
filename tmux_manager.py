@@ -42,11 +42,19 @@ class TmuxManager:
         if self.session_exists(session_name):
             return False
 
+        # 创建 session 时设置较大的 history-limit (50000 行)
         cmd = ["tmux", "new-session", "-d", "-s", session_name, "-x", str(width)]
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
-            return result.returncode == 0
+            if result.returncode == 0:
+                # 设置 history-limit 为 50000 行
+                subprocess.run(
+                    ["tmux", "set-option", "-t", session_name, "history-limit", "50000"],
+                    capture_output=True, text=True
+                )
+                return True
+            return False
         except Exception as e:
             print(f"Error creating tmux session: {e}")
             return False
@@ -209,12 +217,12 @@ class TmuxManager:
         except Exception:
             return True  # 无法确定，假设有进程
 
-    def capture_output(self, session_name: str, lines: int = 100) -> str:
+    def capture_output(self, session_name: str, lines: int = -1) -> str:
         """捕获tmux会话的输出
 
         Args:
             session_name: 会话名称
-            lines: 捕获的行数
+            lines: 捕获的行数，-1 表示捕获全部历史
 
         Returns:
             会话输出内容（包含ANSI颜色代码）
@@ -223,7 +231,11 @@ class TmuxManager:
             return ""
 
         # 添加 -e 标志来保留ANSI转义序列
-        cmd = ["tmux", "capture-pane", "-t", session_name, "-p", "-e", "-S", f"-{lines}"]
+        # -S - 表示从历史开始处捕获（全部历史）
+        if lines == -1:
+            cmd = ["tmux", "capture-pane", "-t", session_name, "-p", "-e", "-S", "-"]
+        else:
+            cmd = ["tmux", "capture-pane", "-t", session_name, "-p", "-e", "-S", f"-{lines}"]
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)

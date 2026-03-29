@@ -342,6 +342,14 @@ class MainWindow(QMainWindow):
         self.log_refresh_timer = QTimer()
         self.log_refresh_timer.timeout.connect(self._auto_refresh_log)
 
+        # 日志追加保存定时器（每3秒追加保存一次）
+        self.log_append_timer = QTimer()
+        self.log_append_timer.timeout.connect(self._append_log_to_file)
+        self.log_append_timer.start(3000)  # 每3秒追加一次
+
+        # 记录每个 session 上次保存的日志长度
+        self.session_log_saved_length = {}  # session_name -> 已保存的字符数
+
     def _init_menu(self):
         """初始化菜单栏"""
         menubar = self.menuBar()
@@ -1789,6 +1797,9 @@ class MainWindow(QMainWindow):
                 self.session_logs[session_name] = ""
             self.log_text_edit.clear()
 
+            # 初始化日志保存长度记录（从头开始记录）
+            self.session_log_saved_length[session_name] = 0
+
             # 启动日志自动刷新
             self.log_refresh_timer.start(1000)  # 每秒刷新一次
 
@@ -1853,7 +1864,7 @@ class MainWindow(QMainWindow):
                 scrollbar.setValue(int(scroll_ratio * new_max))
             return
 
-        output = self.tmux_manager.capture_output(session_name, lines=2000)
+        output = self.tmux_manager.capture_output(session_name, lines=-1)
         if output:
             # 存储当前 session 的日志
             self.session_logs[session_name] = output
@@ -1897,6 +1908,64 @@ class MainWindow(QMainWindow):
                 f.write(content)
             self.statusBar().showMessage(i18n.t("status.log_saved", path))
 
+    def _append_log_to_file(self):
+        """定时追加日志到文件（避免丢失日志）"""
+        if not self.current_session:
+            return
+
+        # 检查是否启用了自动保存日志
+        if not self.config_manager.config.auto_save_log:
+            return
+
+        session_name = self.current_session.session_name
+
+        # 获取当前完整日志
+        if self.tmux_manager.session_exists(session_name):
+            content = self.tmux_manager.capture_output(session_name, lines=-1)
+        else:
+            content = self.session_logs.get(session_name, "")
+
+        if not content or not content.strip():
+            return
+
+        # 获取上次已保存的长度
+        saved_length = self.session_log_saved_length.get(session_name, 0)
+
+        # 只保存新增部分
+        if len(content) <= saved_length:
+            return  # 没有新增内容
+
+        new_content = content[saved_length:]
+
+        # 确定保存路径
+        log_path = self.config_manager.config.log_save_path
+        if not log_path:
+            if self.current_workspace and self.current_workspace.path:
+                log_path = os.path.join(self.current_workspace.path, "logs", "saved_logs")
+            else:
+                log_path = os.path.expanduser("~/isaaclab_logs")
+
+        try:
+            os.makedirs(log_path, exist_ok=True)
+        except Exception as e:
+            print(f"创建日志目录失败: {e}")
+            return
+
+        # 清理 session 名称
+        safe_session_name = session_name.replace(":", "_").replace("/", "_")
+        filename = f"{safe_session_name}.txt"
+        path = os.path.join(log_path, filename)
+
+        try:
+            # 追加写入
+            with open(path, 'a', encoding='utf-8') as f:
+                f.write(new_content)
+            # 更新已保存长度
+            self.session_log_saved_length[session_name] = len(content)
+            print(f"日志追加保存: {len(new_content)} 字符 -> {path}")
+        except Exception as e:
+            print(f"追加保存日志失败: {e}")
+
     def _auto_save_log(self):
         """自动保存日志"""
         # 直接从 tmux 获取日志，确保获取到最新内容
@@ -1904,7 +1973,7 @@ class MainWindow(QMainWindow):
             session_name = self.current_session.session_name
             # 尝试从 tmux 获取日志
             if self.tmux_manager.session_exists(session_name):
-                content = self.tmux_manager.capture_output(session_name, lines=5000)
+                content = self.tmux_manager.capture_output(session_name, lines=-1)
             else:
                 # 如果 session 已结束，从缓存获取
                 content = self.session_logs.get(session_name, "")
