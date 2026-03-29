@@ -366,7 +366,7 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # Isaac Lab 安装路径显示
-        isaaclab_label = QLabel()
+        self.isaaclab_label = QLabel()
         config = self.config_manager.config
 
         # 获取完整的 Python 可执行文件路径
@@ -374,64 +374,64 @@ class MainWindow(QMainWindow):
 
         if not python_exe or not os.path.exists(python_exe):
             # 未配置 Python 环境
-            isaaclab_label.setText("Isaac Lab: 未配置Python环境（请在设置中配置）")
-            isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
+            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
+            self.isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
         else:
             # 使用配置的 Python 环境检测 Isaac Lab
             isaaclab_path = detect_isaaclab_path(python_exe)
             if isaaclab_path:
-                isaaclab_label.setText(f"Isaac Lab: {isaaclab_path}")
-                isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
+                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
+                self.isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
             else:
-                isaaclab_label.setText("Isaac Lab: 未检测到（请确认Python环境正确）")
-                isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
-        main_layout.addWidget(isaaclab_label)
+                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+                self.isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
+        main_layout.addWidget(self.isaaclab_label)
 
         # Workspace选择区域
-        workspace_group = QGroupBox("Workspace")
+        self.workspace_group = QGroupBox(i18n.t("group.workspace"))
         workspace_layout = QHBoxLayout()
 
         self.workspace_edit = QLineEdit()
-        self.workspace_edit.setPlaceholderText("选择Isaac Lab项目目录...")
+        self.workspace_edit.setPlaceholderText(i18n.t("placeholder.workspace"))
         self.workspace_edit.textChanged.connect(self._on_workspace_changed)
 
-        self.browse_btn = QPushButton("浏览...")
+        self.browse_btn = QPushButton(i18n.t("label.browse"))
         self.browse_btn.clicked.connect(self._browse_workspace)
 
-        self.scan_btn = QPushButton("扫描")
+        self.scan_btn = QPushButton(i18n.t("label.scan"))
         self.scan_btn.clicked.connect(self._scan_workspace)
 
         workspace_layout.addWidget(self.workspace_edit)
         workspace_layout.addWidget(self.browse_btn)
         workspace_layout.addWidget(self.scan_btn)
 
-        workspace_group.setLayout(workspace_layout)
-        main_layout.addWidget(workspace_group)
+        self.workspace_group.setLayout(workspace_layout)
+        main_layout.addWidget(self.workspace_group)
 
         # 脚本和任务选择区域
-        selection_group = QGroupBox("脚本和任务")
+        self.selection_group = QGroupBox(i18n.t("group.script_task"))
         selection_layout = QFormLayout()
 
         # 脚本目录
         self.script_dir_combo = QComboBox()
         self.script_dir_combo.currentTextChanged.connect(self._on_script_dir_changed)
-        selection_layout.addRow("脚本目录:", self.script_dir_combo)
+        selection_layout.addRow(i18n.t("label.script_dir"), self.script_dir_combo)
 
         # 任务
         self.task_combo = QComboBox()
         self.task_combo.currentIndexChanged.connect(self._on_task_changed)
-        selection_layout.addRow("任务:", self.task_combo)
+        selection_layout.addRow(i18n.t("label.task"), self.task_combo)
 
         # 任务类型提示
         self.task_type_label = QLabel("")
         self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
-        selection_layout.addRow("类型:", self.task_type_label)
+        selection_layout.addRow(i18n.t("label.type"), self.task_type_label)
 
-        selection_group.setLayout(selection_layout)
-        main_layout.addWidget(selection_group)
+        self.selection_group.setLayout(selection_layout)
+        main_layout.addWidget(self.selection_group)
 
         # 参数设置区域 - 使用StackedWidget区分Train和Play参数
-        params_group = QGroupBox("参数设置")
+        self.params_group = QGroupBox(i18n.t("group.parameters"))
         params_group_layout = QVBoxLayout()
         self.params_stack = QStackedWidget()
 
@@ -442,52 +442,52 @@ class MainWindow(QMainWindow):
         self.train_num_envs_spin = QSpinBox()
         self.train_num_envs_spin.setRange(1, 100000)
         self.train_num_envs_spin.valueChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("环境数量:", self.train_num_envs_spin)
+        train_params_layout.addRow(i18n.t("label.num_envs"), self.train_num_envs_spin)
 
         self.max_iter_spin = QSpinBox()
         self.max_iter_spin.setRange(1, 100000000)
         self.max_iter_spin.valueChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("最大迭代:", self.max_iter_spin)
+        train_params_layout.addRow(i18n.t("label.max_iter"), self.max_iter_spin)
 
         self.train_headless_check = QCheckBox()
         self.train_headless_check.stateChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("无头模式:", self.train_headless_check)
+        train_params_layout.addRow(i18n.t("label.headless"), self.train_headless_check)
 
         # Live stream选项：空(禁用)、1(公网IP)、2(局域网IP)
         self.train_livestream_combo = QComboBox()
-        self.train_livestream_combo.addItem("禁用", 0)
-        self.train_livestream_combo.addItem("公网IP (1)", 1)
-        self.train_livestream_combo.addItem("局域网IP (2)", 2)
+        self.train_livestream_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.train_livestream_combo.addItem(i18n.t("combo.public_ip"), 1)
+        self.train_livestream_combo.addItem(i18n.t("combo.local_ip"), 2)
         self.train_livestream_combo.currentIndexChanged.connect(self._on_train_livestream_changed)
         self.train_livestream_combo.currentIndexChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("实时流:", self.train_livestream_combo)
+        train_params_layout.addRow(i18n.t("label.livestream"), self.train_livestream_combo)
 
         # Enable cameras选项
         self.train_enable_cameras_combo = QComboBox()
-        self.train_enable_cameras_combo.addItem("禁用", 0)
-        self.train_enable_cameras_combo.addItem("启用 (1)", 1)
+        self.train_enable_cameras_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.train_enable_cameras_combo.addItem(i18n.t("combo.enabled"), 1)
         self.train_enable_cameras_combo.currentIndexChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("启用相机:", self.train_enable_cameras_combo)
+        train_params_layout.addRow(i18n.t("label.enable_cameras"), self.train_enable_cameras_combo)
 
         # Resume选项
         self.train_resume_check = QCheckBox()
         self.train_resume_check.stateChanged.connect(self._on_train_resume_changed)
-        train_params_layout.addRow("继续训练 (resume):", self.train_resume_check)
+        train_params_layout.addRow(i18n.t("label.resume"), self.train_resume_check)
 
         # Load run选项
         self.train_load_run_combo = QComboBox()
         self.train_load_run_combo.setEnabled(False)
         self.train_load_run_combo.currentTextChanged.connect(self._on_train_load_run_changed)
-        train_params_layout.addRow("加载运行 (load_run):", self.train_load_run_combo)
+        train_params_layout.addRow(i18n.t("label.load_run"), self.train_load_run_combo)
 
         # Checkpoint选项
         self.train_checkpoint_combo = QComboBox()
         self.train_checkpoint_combo.setEnabled(False)
         self.train_checkpoint_combo.currentTextChanged.connect(self._update_cmd_preview)
-        train_params_layout.addRow("检查点 (checkpoint):", self.train_checkpoint_combo)
+        train_params_layout.addRow(i18n.t("label.checkpoint"), self.train_checkpoint_combo)
 
         # 刷新runs按钮
-        self.train_refresh_runs_btn = QPushButton("刷新运行记录")
+        self.train_refresh_runs_btn = QPushButton(i18n.t("btn.refresh_runs"))
         self.train_refresh_runs_btn.clicked.connect(self._refresh_train_runs)
         self.train_refresh_runs_btn.setEnabled(False)
         train_params_layout.addRow("", self.train_refresh_runs_btn)
@@ -501,40 +501,40 @@ class MainWindow(QMainWindow):
         self.play_num_envs_spin = QSpinBox()
         self.play_num_envs_spin.setRange(1, 100000)
         self.play_num_envs_spin.valueChanged.connect(self._update_cmd_preview)
-        play_params_layout.addRow("环境数量:", self.play_num_envs_spin)
+        play_params_layout.addRow(i18n.t("label.num_envs"), self.play_num_envs_spin)
 
         self.play_headless_check = QCheckBox()
         self.play_headless_check.stateChanged.connect(self._update_cmd_preview)
-        play_params_layout.addRow("无头模式:", self.play_headless_check)
+        play_params_layout.addRow(i18n.t("label.headless"), self.play_headless_check)
 
         # Live stream选项：空(禁用)、1(公网IP)、2(局域网IP)
         self.play_livestream_combo = QComboBox()
-        self.play_livestream_combo.addItem("禁用", 0)
-        self.play_livestream_combo.addItem("公网IP (1)", 1)
-        self.play_livestream_combo.addItem("局域网IP (2)", 2)
+        self.play_livestream_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.play_livestream_combo.addItem(i18n.t("combo.public_ip"), 1)
+        self.play_livestream_combo.addItem(i18n.t("combo.local_ip"), 2)
         self.play_livestream_combo.currentIndexChanged.connect(self._on_play_livestream_changed)
         self.play_livestream_combo.currentIndexChanged.connect(self._update_cmd_preview)
-        play_params_layout.addRow("实时流:", self.play_livestream_combo)
+        play_params_layout.addRow(i18n.t("label.livestream"), self.play_livestream_combo)
 
         # Enable cameras选项
         self.play_enable_cameras_combo = QComboBox()
-        self.play_enable_cameras_combo.addItem("禁用", 0)
-        self.play_enable_cameras_combo.addItem("启用 (1)", 1)
+        self.play_enable_cameras_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.play_enable_cameras_combo.addItem(i18n.t("combo.enabled"), 1)
         self.play_enable_cameras_combo.currentIndexChanged.connect(self._update_cmd_preview)
-        play_params_layout.addRow("启用相机:", self.play_enable_cameras_combo)
+        play_params_layout.addRow(i18n.t("label.enable_cameras"), self.play_enable_cameras_combo)
 
         # Load run选项
         self.play_load_run_combo = QComboBox()
         self.play_load_run_combo.currentTextChanged.connect(self._on_play_load_run_changed)
-        play_params_layout.addRow("加载运行 (load_run):", self.play_load_run_combo)
+        play_params_layout.addRow(i18n.t("label.load_run"), self.play_load_run_combo)
 
         # Checkpoint选项
         self.play_checkpoint_combo = QComboBox()
         self.play_checkpoint_combo.currentTextChanged.connect(self._update_cmd_preview)
-        play_params_layout.addRow("检查点 (checkpoint):", self.play_checkpoint_combo)
+        play_params_layout.addRow(i18n.t("label.checkpoint"), self.play_checkpoint_combo)
 
         # 刷新runs按钮
-        self.play_refresh_runs_btn = QPushButton("刷新运行记录")
+        self.play_refresh_runs_btn = QPushButton(i18n.t("btn.refresh_runs"))
         self.play_refresh_runs_btn.clicked.connect(self._refresh_play_runs)
         self.play_refresh_runs_btn.setEnabled(False)
         play_params_layout.addRow("", self.play_refresh_runs_btn)
@@ -549,53 +549,53 @@ class MainWindow(QMainWindow):
         self.seed_spin = QSpinBox()
         self.seed_spin.setRange(-1, 100000)
         self.seed_spin.valueChanged.connect(self._update_cmd_preview)
-        common_layout.addRow("随机种子:", self.seed_spin)
+        common_layout.addRow(i18n.t("label.seed"), self.seed_spin)
 
         self.extra_params_edit = QLineEdit()
-        self.extra_params_edit.setPlaceholderText("其他命令行参数，如: --logger wandb")
+        self.extra_params_edit.setPlaceholderText(i18n.t("placeholder.extra_params"))
         self.extra_params_edit.textChanged.connect(self._update_cmd_preview)
-        common_layout.addRow("额外参数:", self.extra_params_edit)
+        common_layout.addRow(i18n.t("label.extra_params"), self.extra_params_edit)
 
         params_group_layout.addLayout(common_layout)
-        params_group.setLayout(params_group_layout)
-        main_layout.addWidget(params_group)
+        self.params_group.setLayout(params_group_layout)
+        main_layout.addWidget(self.params_group)
 
         # 命令预览区域
-        cmd_group = QGroupBox("命令预览")
+        self.cmd_group = QGroupBox(i18n.t("group.command_preview"))
         cmd_layout = QVBoxLayout()
 
         self.cmd_preview_edit = QTextEdit()
         self.cmd_preview_edit.setReadOnly(True)
         self.cmd_preview_edit.setMinimumHeight(100)
         self.cmd_preview_edit.setStyleSheet("background-color: #f5f5f5; font-family: monospace; font-size: 12px;")
-        self.cmd_preview_edit.setPlaceholderText("运行命令将显示在这里...")
+        self.cmd_preview_edit.setPlaceholderText(i18n.t("placeholder.command"))
         self.cmd_preview_edit.setLineWrapMode(QTextEdit.WidgetWidth)
         cmd_layout.addWidget(self.cmd_preview_edit)
 
-        cmd_group.setLayout(cmd_layout)
-        main_layout.addWidget(cmd_group)
+        self.cmd_group.setLayout(cmd_layout)
+        main_layout.addWidget(self.cmd_group)
 
         # 控制按钮区域
         control_layout = QHBoxLayout()
 
-        self.settings_btn = QPushButton("设置")
+        self.settings_btn = QPushButton(i18n.t("btn.settings"))
         self.settings_btn.clicked.connect(self._show_config_dialog)
 
-        self.save_params_btn = QPushButton("保存参数")
+        self.save_params_btn = QPushButton(i18n.t("btn.save_params"))
         self.save_params_btn.clicked.connect(self._save_current_params)
-        self.save_params_btn.setToolTip("保存当前参数为默认值")
+        self.save_params_btn.setToolTip(i18n.t("tooltip.save_params"))
 
-        self.run_btn = QPushButton("运行")
+        self.run_btn = QPushButton(i18n.t("btn.run"))
         self.run_btn.clicked.connect(self._run_training)
         self.run_btn.setEnabled(False)
 
-        self.stop_btn = QPushButton("停止")
+        self.stop_btn = QPushButton(i18n.t("btn.stop"))
         self.stop_btn.clicked.connect(self._stop_training)
         self.stop_btn.setEnabled(False)
-        self.stop_btn.setToolTip("终止当前训练会话")
+        self.stop_btn.setToolTip(i18n.t("tooltip.stop"))
         self.stop_btn.setStyleSheet("background-color: #ff6b6b;")
 
-        self.attach_btn = QPushButton("附加到终端")
+        self.attach_btn = QPushButton(i18n.t("btn.attach"))
         self.attach_btn.clicked.connect(self._attach_to_session)
         self.attach_btn.setEnabled(False)
 
@@ -609,17 +609,17 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(control_layout)
 
         # 会话状态区域
-        status_group = QGroupBox("当前会话")
+        self.status_group = QGroupBox(i18n.t("group.current_session"))
         status_layout = QFormLayout()
 
-        self.session_name_label = QLabel("无")
-        status_layout.addRow("会话名称:", self.session_name_label)
+        self.session_name_label = QLabel(i18n.t("label.none"))
+        status_layout.addRow(i18n.t("label.session_name"), self.session_name_label)
 
-        self.session_status_label = QLabel("无")
-        status_layout.addRow("状态:", self.session_status_label)
+        self.session_status_label = QLabel(i18n.t("label.none"))
+        status_layout.addRow(i18n.t("label.status"), self.session_status_label)
 
-        status_group.setLayout(status_layout)
-        main_layout.addWidget(status_group)
+        self.status_group.setLayout(status_layout)
+        main_layout.addWidget(self.status_group)
 
         # 将左侧面板添加到分割器
         main_splitter.addWidget(left_widget)
@@ -629,22 +629,22 @@ class MainWindow(QMainWindow):
         log_layout = QVBoxLayout(log_widget)
         log_layout.setContentsMargins(0, 0, 0, 0)
 
-        log_group = QGroupBox("日志面板")
-        log_group_layout = QVBoxLayout(log_group)
+        self.log_group = QGroupBox(i18n.t("log.title"))
+        log_group_layout = QVBoxLayout(self.log_group)
 
         # 日志工具栏
         log_toolbar = QHBoxLayout()
 
-        self.log_refresh_btn = QPushButton("刷新")
+        self.log_refresh_btn = QPushButton(i18n.t("log.refresh"))
         self.log_refresh_btn.clicked.connect(self._refresh_log)
 
-        self.log_save_btn = QPushButton("保存")
+        self.log_save_btn = QPushButton(i18n.t("log.save"))
         self.log_save_btn.clicked.connect(self._save_log)
 
-        self.log_clear_btn = QPushButton("清除")
+        self.log_clear_btn = QPushButton(i18n.t("log.clear"))
         self.log_clear_btn.clicked.connect(self._clear_log)
 
-        self.log_auto_scroll_check = QCheckBox("自动滚动")
+        self.log_auto_scroll_check = QCheckBox(i18n.t("log.auto_scroll"))
         self.log_auto_scroll_check.setChecked(True)
         self.log_auto_scroll_check.stateChanged.connect(self._on_auto_scroll_changed)
 
@@ -661,12 +661,12 @@ class MainWindow(QMainWindow):
         self.log_text_edit.setReadOnly(True)
         # 使用较小字体以显示更多字符（约190字符宽度）
         self.log_text_edit.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 9px;")
-        self.log_text_edit.setPlaceholderText("日志内容将显示在这里...")
+        self.log_text_edit.setPlaceholderText(i18n.t("placeholder.log_content"))
         self.log_text_edit.setLineWrapMode(QTextEdit.NoWrap)  # 不自动换行
         log_group_layout.addWidget(self.log_text_edit)
 
-        log_group.setLayout(log_group_layout)
-        log_layout.addWidget(log_group)
+        self.log_group.setLayout(log_group_layout)
+        log_layout.addWidget(self.log_group)
 
         main_splitter.addWidget(log_widget)
 
@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
         self.log_widget = log_widget
 
         # 状态栏
-        self.statusBar().showMessage("就绪")
+        self.statusBar().showMessage(i18n.t("status.ready"))
 
     def _load_last_workspace(self):
         """加载上次的workspace和配置"""
@@ -710,9 +710,7 @@ class MainWindow(QMainWindow):
         self.config_manager.config.language = lang
         self.config_manager.save()
         self._update_ui_text()
-        QMessageBox.information(self, i18n.t("menu.settings"),
-                               "Language changed. Restart the application for full effect." if lang == "en"
-                               else "语言已更改，重启应用以完全生效。")
+        QMessageBox.information(self, i18n.t("msg.tip"), i18n.t("msg.language_changed"))
 
     def _update_ui_text(self):
         """更新所有UI文本"""
@@ -727,6 +725,25 @@ class MainWindow(QMainWindow):
         self.help_menu.setTitle(i18n.t("menu.help"))
         self.about_action.setText(i18n.t("menu.about"))
 
+        # 更新 Isaac Lab 标签
+        python_exe = self.config_manager.get_python_executable()
+        if not python_exe or not os.path.exists(python_exe):
+            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
+        else:
+            isaaclab_path = detect_isaaclab_path(python_exe)
+            if isaaclab_path:
+                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
+            else:
+                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+
+        # 更新 GroupBox 标题
+        self.workspace_group.setTitle(i18n.t("group.workspace"))
+        self.selection_group.setTitle(i18n.t("group.script_task"))
+        self.params_group.setTitle(i18n.t("group.parameters"))
+        self.cmd_group.setTitle(i18n.t("group.command_preview"))
+        self.status_group.setTitle(i18n.t("group.current_session"))
+        self.log_group.setTitle(i18n.t("log.title"))
+
         # 更新按钮
         self.browse_btn.setText(i18n.t("label.browse"))
         self.scan_btn.setText(i18n.t("label.scan"))
@@ -738,14 +755,55 @@ class MainWindow(QMainWindow):
         self.train_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
         self.play_refresh_runs_btn.setText(i18n.t("btn.refresh_runs"))
 
-        # 日志面板按钮
+        # 更新工具提示
+        self.save_params_btn.setToolTip(i18n.t("tooltip.save_params"))
+        self.stop_btn.setToolTip(i18n.t("tooltip.stop"))
+
+        # 更新日志面板
         self.log_refresh_btn.setText(i18n.t("log.refresh"))
         self.log_save_btn.setText(i18n.t("log.save"))
         self.log_clear_btn.setText(i18n.t("log.clear"))
         self.log_auto_scroll_check.setText(i18n.t("log.auto_scroll"))
 
+        # 更新占位符
+        self.workspace_edit.setPlaceholderText(i18n.t("placeholder.workspace"))
+        self.extra_params_edit.setPlaceholderText(i18n.t("placeholder.extra_params"))
+        self.cmd_preview_edit.setPlaceholderText(i18n.t("placeholder.command"))
+        self.log_text_edit.setPlaceholderText(i18n.t("placeholder.log_content"))
+
         # 更新状态栏
         self.statusBar().showMessage(i18n.t("status.ready"))
+
+        # 更新 ComboBox 项目（需要重新填充）
+        self._update_combo_items()
+
+    def _update_combo_items(self):
+        """更新 ComboBox 项目文本"""
+        # 保存当前选择
+        train_livestream_idx = self.train_livestream_combo.currentIndex()
+        train_cameras_idx = self.train_enable_cameras_combo.currentIndex()
+        play_livestream_idx = self.play_livestream_combo.currentIndex()
+        play_cameras_idx = self.play_enable_cameras_combo.currentIndex()
+
+        # 更新 Train 模式 ComboBox
+        self.train_livestream_combo.setItemText(0, i18n.t("combo.disabled"))
+        self.train_livestream_combo.setItemText(1, i18n.t("combo.public_ip"))
+        self.train_livestream_combo.setItemText(2, i18n.t("combo.local_ip"))
+        self.train_enable_cameras_combo.setItemText(0, i18n.t("combo.disabled"))
+        self.train_enable_cameras_combo.setItemText(1, i18n.t("combo.enabled"))
+
+        # 更新 Play 模式 ComboBox
+        self.play_livestream_combo.setItemText(0, i18n.t("combo.disabled"))
+        self.play_livestream_combo.setItemText(1, i18n.t("combo.public_ip"))
+        self.play_livestream_combo.setItemText(2, i18n.t("combo.local_ip"))
+        self.play_enable_cameras_combo.setItemText(0, i18n.t("combo.disabled"))
+        self.play_enable_cameras_combo.setItemText(1, i18n.t("combo.enabled"))
+
+        # 恢复选择
+        self.train_livestream_combo.setCurrentIndex(train_livestream_idx)
+        self.train_enable_cameras_combo.setCurrentIndex(train_cameras_idx)
+        self.play_livestream_combo.setCurrentIndex(play_livestream_idx)
+        self.play_enable_cameras_combo.setCurrentIndex(play_cameras_idx)
 
     def _load_last_session_config(self):
         """加载上次会话配置"""
@@ -831,7 +889,7 @@ class MainWindow(QMainWindow):
         # 搜索 logs 目录
         logs_dir = os.path.join(self.current_workspace.path, "logs")
         if not os.path.isdir(logs_dir):
-            self.train_load_run_combo.addItem("logs目录不存在", None)
+            self.train_load_run_combo.addItem(i18n.t("combo.no_logs"), None)
             return
 
         # 遍历 logs/<logger>/<task_name>/ 目录
@@ -861,14 +919,14 @@ class MainWindow(QMainWindow):
                             # 查找最新的checkpoint
                             try:
                                 pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[-1] if pt_files else "无"
+                                latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
                                     'logger': logger_name,
                                     'task': task_dir,
                                     'latest_model': latest_model,
-                                    'display': f"[{task_dir}] {run_name} (最新: {latest_model})"
+                                    'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                                 })
                             except OSError:
                                 pass
@@ -889,7 +947,7 @@ class MainWindow(QMainWindow):
                 for run in all_runs:
                     self.train_load_run_combo.addItem(run['display'], run)
             else:
-                self.train_load_run_combo.addItem("未找到运行记录", None)
+                self.train_load_run_combo.addItem(i18n.t("combo.no_runs"), None)
 
     def _list_all_runs(self):
         """列出所有运行记录"""
@@ -916,14 +974,14 @@ class MainWindow(QMainWindow):
                     if os.path.isdir(run_path):
                         try:
                             pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                            latest_model = pt_files[-1] if pt_files else "无"
+                            latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
                             runs.append({
                                 'name': run_name,
                                 'path': run_path,
                                 'logger': logger_name,
                                 'task': task_dir,
                                 'latest_model': latest_model,
-                                'display': f"[{task_dir}] {run_name} (最新: {latest_model})"
+                                'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                             })
                         except OSError:
                             pass
@@ -936,7 +994,7 @@ class MainWindow(QMainWindow):
         self.train_checkpoint_combo.clear()
 
         if not run_path or not os.path.isdir(run_path):
-            self.train_checkpoint_combo.addItem("无", None)
+            self.train_checkpoint_combo.addItem(i18n.t("label.none"), None)
             return
 
         pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')], reverse=True)
@@ -945,7 +1003,7 @@ class MainWindow(QMainWindow):
                 full_path = os.path.join(run_path, pt_file)
                 self.train_checkpoint_combo.addItem(pt_file, full_path)
         else:
-            self.train_checkpoint_combo.addItem("无检查点", None)
+            self.train_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
     def _refresh_play_runs(self):
         """刷新Play模式的运行记录"""
@@ -962,7 +1020,7 @@ class MainWindow(QMainWindow):
         # 搜索 logs 目录
         logs_dir = os.path.join(self.current_workspace.path, "logs")
         if not os.path.isdir(logs_dir):
-            self.play_load_run_combo.addItem("logs目录不存在", None)
+            self.play_load_run_combo.addItem(i18n.t("combo.no_logs"), None)
             return
 
         # 遍历 logs/<logger>/<task_name>/ 目录
@@ -989,14 +1047,14 @@ class MainWindow(QMainWindow):
                         if os.path.isdir(run_path):
                             try:
                                 pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[-1] if pt_files else "无"
+                                latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
                                     'logger': logger_name,
                                     'task': task_dir,
                                     'latest_model': latest_model,
-                                    'display': f"[{task_dir}] {run_name} (最新: {latest_model})"
+                                    'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                                 })
                             except OSError:
                                 pass
@@ -1014,7 +1072,7 @@ class MainWindow(QMainWindow):
                 for run in all_runs:
                     self.play_load_run_combo.addItem(run['display'], run)
             else:
-                self.play_load_run_combo.addItem("未找到运行记录", None)
+                self.play_load_run_combo.addItem(i18n.t("combo.no_runs"), None)
 
     def _load_play_checkpoints(self, run_path: str):
         """加载Play模式的checkpoint列表"""
@@ -1030,7 +1088,7 @@ class MainWindow(QMainWindow):
                 full_path = os.path.join(run_path, pt_file)
                 self.play_checkpoint_combo.addItem(pt_file, full_path)
         else:
-            self.play_checkpoint_combo.addItem("无检查点", None)
+            self.play_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
     def _on_play_load_run_changed(self, text: str):
         """Play模式load_run变化时，更新checkpoint列表"""
@@ -1077,7 +1135,7 @@ class MainWindow(QMainWindow):
             import subprocess
             subprocess.Popen(['xdg-open', path])
         else:
-            QMessageBox.warning(self, "提示", "请先选择有效的Workspace目录")
+            QMessageBox.warning(self, i18n.t("msg.tip"), i18n.t("msg.no_workspace"))
 
     def _on_workspace_changed(self, path: str):
         """workspace路径变化"""
@@ -1090,10 +1148,10 @@ class MainWindow(QMainWindow):
         """扫描workspace"""
         path = self.workspace_edit.text()
         if not path or not os.path.isdir(path):
-            QMessageBox.warning(self, "错误", "请选择有效的目录")
+            QMessageBox.warning(self, i18n.t("msg.error"), i18n.t("msg.invalid_dir"))
             return
 
-        self.statusBar().showMessage("正在扫描...")
+        self.statusBar().showMessage(i18n.t("status.scanning"))
 
         try:
             scanner = WorkspaceScanner(path)
@@ -1102,8 +1160,8 @@ class MainWindow(QMainWindow):
             # 检查是否是有效的workspace
             if not self.current_workspace.has_scripts:
                 QMessageBox.warning(
-                    self, "警告",
-                    f"未在 {path}/scripts 目录下找到训练或播放脚本"
+                    self, i18n.t("msg.warning"),
+                    i18n.t("msg.no_scripts", path)
                 )
 
             # 更新脚本目录下拉框
@@ -1138,11 +1196,11 @@ class MainWindow(QMainWindow):
             # 保存到最近使用的workspace
             self.config_manager.add_recent_workspace(path)
 
-            self.statusBar().showMessage(f"扫描完成: {len(self.current_workspace.tasks)} 个任务")
+            self.statusBar().showMessage(i18n.t("status.scan_complete", len(self.current_workspace.tasks)))
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"扫描失败: {e}")
-            self.statusBar().showMessage("扫描失败")
+            QMessageBox.critical(self, i18n.t("msg.error"), i18n.t("status.scan_failed"))
+            self.statusBar().showMessage(i18n.t("status.scan_failed"))
 
     def _clear_workspace_info(self):
         """清空workspace信息"""
@@ -1223,7 +1281,7 @@ class MainWindow(QMainWindow):
         config.last_extra_params = self.extra_params_edit.text()
 
         self.config_manager.save()
-        self.statusBar().showMessage("参数已保存", 3000)
+        self.statusBar().showMessage(i18n.t("status.params_saved"), 3000)
 
     def _update_task_list(self):
         """更新任务列表"""
@@ -1329,8 +1387,8 @@ class MainWindow(QMainWindow):
         activation_cmd = self.config_manager.get_activation_command()
         if not activation_cmd and not self.config_manager.config.conda_env_name:
             reply = QMessageBox.question(
-                self, "确认",
-                "未配置Python环境，将使用系统默认Python。\n是否继续？",
+                self, i18n.t("msg.confirm"),
+                i18n.t("msg.no_python_env"),
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.No:
@@ -1352,7 +1410,7 @@ class MainWindow(QMainWindow):
         # 创建会话并运行
         try:
             if not self.tmux_manager.create_session(session_name, width=char_width):
-                QMessageBox.critical(self, "错误", "无法创建tmux会话")
+                QMessageBox.critical(self, i18n.t("msg.error"), i18n.t("msg.create_session_failed"))
                 return
 
             # 设置工作目录
@@ -1389,10 +1447,10 @@ class MainWindow(QMainWindow):
             # 启动日志自动刷新
             self.log_refresh_timer.start(1000)  # 每秒刷新一次
 
-            self.statusBar().showMessage(f"已启动会话: {session_name}")
+            self.statusBar().showMessage(i18n.t("status.session_started", session_name))
 
         except Exception as e:
-            QMessageBox.critical(self, "错误", f"启动失败: {e}")
+            QMessageBox.critical(self, i18n.t("msg.error"), i18n.t("msg.start_failed", str(e)))
 
     def _stop_training(self):
         """停止训练 - 直接终止会话"""
@@ -1400,8 +1458,8 @@ class MainWindow(QMainWindow):
             return
 
         reply = QMessageBox.question(
-            self, "确认",
-            "确定要停止当前训练吗？\n这会终止tmux会话。",
+            self, i18n.t("msg.confirm"),
+            i18n.t("msg.stop_training"),
             QMessageBox.Yes | QMessageBox.No
         )
 
@@ -1419,7 +1477,7 @@ class MainWindow(QMainWindow):
 
             # 停止日志刷新，但保留内容
             self.log_refresh_timer.stop()
-            self.statusBar().showMessage("会话已终止")
+            self.statusBar().showMessage(i18n.t("status.session_ended"))
 
     def _auto_refresh_log(self):
         """自动刷新日志"""
@@ -1472,7 +1530,7 @@ class MainWindow(QMainWindow):
         """保存日志到文件"""
         content = self.log_text_edit.toPlainText()
         if not content.strip():
-            QMessageBox.information(self, "提示", "无日志内容")
+            QMessageBox.information(self, i18n.t("msg.tip"), i18n.t("msg.log_empty"))
             return
 
         # 使用配置的日志保存路径
@@ -1486,13 +1544,13 @@ class MainWindow(QMainWindow):
             default_path = default_name
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "保存日志", default_path, "Text Files (*.txt)"
+            self, i18n.t("msg.log_save_title"), default_path, "Text Files (*.txt)"
         )
 
         if path:
             with open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            self.statusBar().showMessage(f"日志已保存到: {path}")
+            self.statusBar().showMessage(i18n.t("status.log_saved", path))
 
     def _auto_save_log(self):
         """自动保存日志"""
@@ -1538,10 +1596,10 @@ class MainWindow(QMainWindow):
         try:
             with open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            self.statusBar().showMessage(f"日志已自动保存到: {path}")
+            self.statusBar().showMessage(i18n.t("status.log_auto_saved", path))
             print(f"日志已自动保存到: {path}")
         except Exception as e:
-            self.statusBar().showMessage(f"自动保存日志失败: {e}")
+            self.statusBar().showMessage(i18n.t("status.log_save_failed", str(e)))
             print(f"自动保存日志失败: {e}")
 
     def _clear_log(self):
@@ -1589,9 +1647,8 @@ class MainWindow(QMainWindow):
 
             # 显示提示
             QMessageBox.information(
-                self, "提示",
-                f"将在 {terminal} 中附加到会话: {self.current_session.session_name}\n\n"
-                "按 Ctrl+B 然后按 D 可以分离会话"
+                self, i18n.t("msg.tip"),
+                i18n.t("msg.attach_terminal", terminal, self.current_session.session_name)
             )
 
             # 在新终端中运行tmux attach
@@ -1640,7 +1697,7 @@ class MainWindow(QMainWindow):
 
             # 停止日志自动刷新，但保留内容
             self.log_refresh_timer.stop()
-            self.statusBar().showMessage("训练已停止，Session 保留")
+            self.statusBar().showMessage(i18n.t("status.session_stopped_preserved"))
             print(f"[DEBUG] 会话状态更新为 stopped")
 
     def _on_session_ended(self, forced: bool = False):
@@ -1659,9 +1716,9 @@ class MainWindow(QMainWindow):
         self.log_refresh_timer.stop()
 
         if forced:
-            self.statusBar().showMessage("会话已强制终止")
+            self.statusBar().showMessage(i18n.t("status.force_stopped"))
         else:
-            self.statusBar().showMessage("会话已结束")
+            self.statusBar().showMessage(i18n.t("status.session_ended"))
 
     def _update_session_status(self):
         """更新会话状态显示"""
@@ -1669,8 +1726,8 @@ class MainWindow(QMainWindow):
             self.session_name_label.setText(self.current_session.session_name)
             self.session_status_label.setText(self.current_session.status)
         else:
-            self.session_name_label.setText("无")
-            self.session_status_label.setText("无")
+            self.session_name_label.setText(i18n.t("label.none"))
+            self.session_status_label.setText(i18n.t("label.none"))
 
     def _show_config_dialog(self):
         """显示配置对话框"""
@@ -1680,21 +1737,30 @@ class MainWindow(QMainWindow):
         # 更新默认参数
         self._load_params_from_config()
 
+        # 更新 Isaac Lab 标签
+        python_exe = self.config_manager.get_python_executable()
+        if not python_exe or not os.path.exists(python_exe):
+            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
+        else:
+            isaaclab_path = detect_isaaclab_path(python_exe)
+            if isaaclab_path:
+                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
+            else:
+                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+
     def _show_about(self):
         """显示关于对话框"""
         QMessageBox.about(
-            self, "关于",
-            "Isaac Lab Train Tool\n\n"
-            "用于管理Isaac Lab项目训练和播放的图形界面工具\n\n"
-            "版本: 1.0.0"
+            self, i18n.t("menu.about"),
+            i18n.t("msg.about")
         )
 
     def closeEvent(self, event):
         """窗口关闭事件"""
         if self.current_session:
             reply = QMessageBox.question(
-                self, "确认",
-                "有正在运行的训练会话。\n关闭窗口不会停止训练，会话将继续在后台运行。\n\n确定要关闭吗？",
+                self, i18n.t("msg.confirm"),
+                i18n.t("msg.closing"),
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.No:

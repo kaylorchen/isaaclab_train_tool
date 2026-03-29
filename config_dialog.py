@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from config import ConfigManager
+import i18n
 
 
 def scan_conda_environments():
@@ -106,7 +107,7 @@ class ConfigDialog(QDialog):
     def __init__(self, config_manager: ConfigManager, parent=None):
         super().__init__(parent)
         self.config_manager = config_manager
-        self.setWindowTitle("设置")
+        self.setWindowTitle(i18n.t("config.title"))
         self.setMinimumWidth(600)
 
         self._init_ui()
@@ -116,17 +117,17 @@ class ConfigDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # ========== 环境设置组 ==========
-        env_group = QGroupBox("Python环境")
+        env_group = QGroupBox(i18n.t("config.python_env"))
         env_layout = QVBoxLayout()
 
         # 环境类型选择
         type_layout = QHBoxLayout()
-        type_layout.addWidget(QLabel("环境类型:"))
+        type_layout.addWidget(QLabel(i18n.t("config.env_type")))
 
         self.env_type_group = QButtonGroup(self)
-        self.scan_env_radio = QRadioButton("扫描环境")
-        self.local_env_radio = QRadioButton("本机环境")
-        self.manual_env_radio = QRadioButton("手动输入")
+        self.scan_env_radio = QRadioButton(i18n.t("config.scan_env"))
+        self.local_env_radio = QRadioButton(i18n.t("config.local_env"))
+        self.manual_env_radio = QRadioButton(i18n.t("config.manual_input"))
 
         self.env_type_group.addButton(self.scan_env_radio, 0)
         self.env_type_group.addButton(self.local_env_radio, 1)
@@ -151,9 +152,9 @@ class ConfigDialog(QDialog):
 
         # 扫描按钮行
         scan_btn_layout = QHBoxLayout()
-        self.scan_conda_btn = QPushButton("扫描Conda")
+        self.scan_conda_btn = QPushButton(i18n.t("config.scan_conda"))
         self.scan_conda_btn.clicked.connect(self._scan_conda_envs)
-        self.scan_venv_btn = QPushButton("扫描venv")
+        self.scan_venv_btn = QPushButton(i18n.t("config.scan_venv"))
         self.scan_venv_btn.clicked.connect(self._scan_venv_envs)
         scan_btn_layout.addWidget(self.scan_conda_btn)
         scan_btn_layout.addWidget(self.scan_venv_btn)
@@ -165,11 +166,11 @@ class ConfigDialog(QDialog):
         self.env_combo = QComboBox()
         self.env_combo.setMinimumWidth(450)
         self.env_combo.currentIndexChanged.connect(self._on_env_selected)
-        scan_form.addRow("选择环境:", self.env_combo)
+        scan_form.addRow(i18n.t("config.select_env"), self.env_combo)
 
-        self.env_path_label = QLabel("未选择")
+        self.env_path_label = QLabel(i18n.t("config.not_selected"))
         self.env_path_label.setStyleSheet("color: gray; font-size: 11px;")
-        scan_form.addRow("路径:", self.env_path_label)
+        scan_form.addRow(i18n.t("config.path"), self.env_path_label)
 
         scan_page_layout.addLayout(scan_form)
         self.env_stack.addWidget(scan_page)
@@ -179,7 +180,7 @@ class ConfigDialog(QDialog):
         local_page_layout = QVBoxLayout(local_page)
         local_page_layout.setContentsMargins(0, 0, 0, 0)
 
-        local_label = QLabel("将使用系统默认Python环境")
+        local_label = QLabel(i18n.t("config.use_default"))
         local_label.setStyleSheet("color: #666; padding: 10px;")
         local_page_layout.addWidget(local_label)
         self.env_stack.addWidget(local_page)
@@ -192,19 +193,19 @@ class ConfigDialog(QDialog):
         manual_form = QFormLayout()
 
         self.manual_env_type_combo = QComboBox()
-        self.manual_env_type_combo.addItems(["Conda环境", "虚拟环境(venv)"])
-        manual_form.addRow("环境类型:", self.manual_env_type_combo)
+        self.manual_env_type_combo.addItems([i18n.t("config.conda_env"), i18n.t("config.venv")])
+        manual_form.addRow(i18n.t("config.env_type"), self.manual_env_type_combo)
 
         self.manual_env_name_edit = QLineEdit()
-        self.manual_env_name_edit.setPlaceholderText("环境名称，如 isaaclab")
-        manual_form.addRow("环境名称:", self.manual_env_name_edit)
+        self.manual_env_name_edit.setPlaceholderText(i18n.t("config.env_name_placeholder"))
+        manual_form.addRow(i18n.t("config.env_name"), self.manual_env_name_edit)
 
         self.manual_env_path_edit = QLineEdit()
-        self.manual_env_path_edit.setPlaceholderText("环境路径")
-        manual_form.addRow("环境路径:", self.manual_env_path_edit)
+        self.manual_env_path_edit.setPlaceholderText(i18n.t("config.env_path_placeholder"))
+        manual_form.addRow(i18n.t("config.env_path"), self.manual_env_path_edit)
 
         browse_btn_layout = QHBoxLayout()
-        self.browse_manual_btn = QPushButton("浏览...")
+        self.browse_manual_btn = QPushButton(i18n.t("label.browse"))
         self.browse_manual_btn.clicked.connect(self._browse_manual_path)
         browse_btn_layout.addWidget(self.browse_manual_btn)
         browse_btn_layout.addStretch()
@@ -218,116 +219,116 @@ class ConfigDialog(QDialog):
         layout.addWidget(env_group)
 
         # ========== Train模式参数组 ==========
-        train_group = QGroupBox("Train模式参数")
+        train_group = QGroupBox(i18n.t("config.train_params"))
         train_layout = QFormLayout()
 
         self.train_num_envs_spin = QSpinBox()
         self.train_num_envs_spin.setRange(1, 100000)
         self.train_num_envs_spin.setValue(4096)
-        train_layout.addRow("环境数量 (num_envs):", self.train_num_envs_spin)
+        train_layout.addRow(i18n.t("config.num_envs"), self.train_num_envs_spin)
 
         self.train_max_iter_spin = QSpinBox()
         self.train_max_iter_spin.setRange(1, 100000000)
         self.train_max_iter_spin.setValue(1000)
-        train_layout.addRow("最大迭代次数:", self.train_max_iter_spin)
+        train_layout.addRow(i18n.t("config.max_iterations"), self.train_max_iter_spin)
 
-        self.train_headless_check = QCheckBox("无头模式 (headless)")
+        self.train_headless_check = QCheckBox(i18n.t("config.headless_mode"))
         self.train_headless_check.setChecked(True)
         train_layout.addRow("", self.train_headless_check)
 
         # Live stream选项：空(禁用)、1(公网IP)、2(局域网IP)
         self.train_livestream_combo = QComboBox()
-        self.train_livestream_combo.addItem("禁用", 0)
-        self.train_livestream_combo.addItem("公网IP (1)", 1)
-        self.train_livestream_combo.addItem("局域网IP (2)", 2)
+        self.train_livestream_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.train_livestream_combo.addItem(i18n.t("combo.public_ip"), 1)
+        self.train_livestream_combo.addItem(i18n.t("combo.local_ip"), 2)
         self.train_livestream_combo.currentIndexChanged.connect(self._on_train_livestream_changed)
-        train_layout.addRow("实时流 (livestream):", self.train_livestream_combo)
+        train_layout.addRow(i18n.t("config.livestream"), self.train_livestream_combo)
 
         # Enable cameras选项：空(禁用)、1(启用)
         self.train_enable_cameras_combo = QComboBox()
-        self.train_enable_cameras_combo.addItem("禁用", 0)
-        self.train_enable_cameras_combo.addItem("启用 (1)", 1)
-        train_layout.addRow("启用相机 (enable_cameras):", self.train_enable_cameras_combo)
+        self.train_enable_cameras_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.train_enable_cameras_combo.addItem(i18n.t("combo.enabled"), 1)
+        train_layout.addRow(i18n.t("config.enable_cameras"), self.train_enable_cameras_combo)
 
         train_group.setLayout(train_layout)
         layout.addWidget(train_group)
 
         # ========== Play模式参数组 ==========
-        play_group = QGroupBox("Play模式参数")
+        play_group = QGroupBox(i18n.t("config.play_params"))
         play_layout = QFormLayout()
 
         self.play_num_envs_spin = QSpinBox()
         self.play_num_envs_spin.setRange(1, 100000)
         self.play_num_envs_spin.setValue(1)
-        play_layout.addRow("环境数量 (num_envs):", self.play_num_envs_spin)
+        play_layout.addRow(i18n.t("config.num_envs"), self.play_num_envs_spin)
 
-        self.play_headless_check = QCheckBox("无头模式 (headless)")
+        self.play_headless_check = QCheckBox(i18n.t("config.headless_mode"))
         self.play_headless_check.setChecked(False)
         play_layout.addRow("", self.play_headless_check)
 
         # Live stream选项：空(禁用)、1(公网IP)、2(局域网IP)
         self.play_livestream_combo = QComboBox()
-        self.play_livestream_combo.addItem("禁用", 0)
-        self.play_livestream_combo.addItem("公网IP (1)", 1)
-        self.play_livestream_combo.addItem("局域网IP (2)", 2)
+        self.play_livestream_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.play_livestream_combo.addItem(i18n.t("combo.public_ip"), 1)
+        self.play_livestream_combo.addItem(i18n.t("combo.local_ip"), 2)
         self.play_livestream_combo.currentIndexChanged.connect(self._on_play_livestream_changed)
-        play_layout.addRow("实时流 (livestream):", self.play_livestream_combo)
+        play_layout.addRow(i18n.t("config.livestream"), self.play_livestream_combo)
 
         # Enable cameras选项：空(禁用)、1(启用)
         self.play_enable_cameras_combo = QComboBox()
-        self.play_enable_cameras_combo.addItem("禁用", 0)
-        self.play_enable_cameras_combo.addItem("启用 (1)", 1)
-        play_layout.addRow("启用相机 (enable_cameras):", self.play_enable_cameras_combo)
+        self.play_enable_cameras_combo.addItem(i18n.t("combo.disabled"), 0)
+        self.play_enable_cameras_combo.addItem(i18n.t("combo.enabled"), 1)
+        play_layout.addRow(i18n.t("config.enable_cameras"), self.play_enable_cameras_combo)
 
         play_group.setLayout(play_layout)
         layout.addWidget(play_group)
 
         # ========== 通用参数组 ==========
-        common_group = QGroupBox("通用参数")
+        common_group = QGroupBox(i18n.t("config.common_params"))
         common_layout = QFormLayout()
 
         self.seed_spin = QSpinBox()
         self.seed_spin.setRange(-1, 100000)
         self.seed_spin.setValue(-1)
-        common_layout.addRow("随机种子 (-1为随机):", self.seed_spin)
+        common_layout.addRow(i18n.t("config.seed"), self.seed_spin)
 
         self.device_combo = QComboBox()
         self.device_combo.addItems(["cuda:0", "cuda:1", "cuda:2", "cuda:3", "cpu"])
-        common_layout.addRow("设备:", self.device_combo)
+        common_layout.addRow(i18n.t("config.device"), self.device_combo)
 
         common_group.setLayout(common_layout)
         layout.addWidget(common_group)
 
         # ========== tmux设置组 ==========
-        tmux_group = QGroupBox("tmux设置")
+        tmux_group = QGroupBox(i18n.t("config.tmux_settings"))
         tmux_layout = QFormLayout()
 
         self.tmux_prefix_edit = QLineEdit()
         self.tmux_prefix_edit.setText("isaaclab")
-        tmux_layout.addRow("会话名称前缀:", self.tmux_prefix_edit)
+        tmux_layout.addRow(i18n.t("config.session_prefix"), self.tmux_prefix_edit)
 
         tmux_group.setLayout(tmux_layout)
         layout.addWidget(tmux_group)
 
         # ========== 日志设置组 ==========
-        log_group = QGroupBox("日志设置")
+        log_group = QGroupBox(i18n.t("config.log_settings"))
         log_layout = QFormLayout()
 
         # 自动保存日志
-        self.auto_save_log_check = QCheckBox("自动保存日志")
+        self.auto_save_log_check = QCheckBox(i18n.t("config.auto_save_log"))
         log_layout.addRow("", self.auto_save_log_check)
 
         # 日志保存路径
         log_path_layout = QHBoxLayout()
         self.log_path_edit = QLineEdit()
-        self.log_path_edit.setPlaceholderText("默认保存到当前目录")
+        self.log_path_edit.setPlaceholderText(i18n.t("config.log_save_path_placeholder"))
         log_path_layout.addWidget(self.log_path_edit)
 
-        self.browse_log_btn = QPushButton("浏览...")
+        self.browse_log_btn = QPushButton(i18n.t("label.browse"))
         self.browse_log_btn.clicked.connect(self._browse_log_path)
         log_path_layout.addWidget(self.browse_log_btn)
 
-        log_layout.addRow("日志保存路径:", log_path_layout)
+        log_layout.addRow(i18n.t("config.log_save_path"), log_path_layout)
 
         log_group.setLayout(log_layout)
         layout.addWidget(log_group)
@@ -364,42 +365,40 @@ class ConfigDialog(QDialog):
     def _scan_conda_envs(self):
         """扫描conda环境"""
         self.env_combo.clear()
-        self.env_combo.addItem("-- 请选择 --", None)
+        self.env_combo.addItem("-- " + i18n.t("config.select_env").replace(":", "") + " --", None)
 
         envs = scan_conda_environments()
 
         if not envs:
             QMessageBox.information(
-                self, "提示",
-                "未找到conda环境。\n"
-                "请确保conda已安装并配置正确。"
+                self, i18n.t("msg.tip"),
+                i18n.t("config.conda_not_found")
             )
             return
 
         for env_name, env_path in envs:
             self.env_combo.addItem(f"[Conda] {env_name}", ("conda", env_name, env_path))
 
-        QMessageBox.information(self, "扫描完成", f"找到 {len(envs)} 个conda环境")
+        QMessageBox.information(self, i18n.t("config.scan_complete"), i18n.t("config.found_envs", len(envs), "conda"))
 
     def _scan_venv_envs(self):
         """扫描虚拟环境"""
         self.env_combo.clear()
-        self.env_combo.addItem("-- 请选择 --", None)
+        self.env_combo.addItem("-- " + i18n.t("config.select_env").replace(":", "") + " --", None)
 
         envs = scan_venv_environments()
 
         if not envs:
             QMessageBox.information(
-                self, "提示",
-                "未找到虚拟环境。\n"
-                "您可以尝试手动输入。"
+                self, i18n.t("msg.tip"),
+                i18n.t("config.venv_not_found")
             )
             return
 
         for env_name, env_path in envs:
             self.env_combo.addItem(f"[venv] {env_name}", ("venv", env_name, env_path))
 
-        QMessageBox.information(self, "扫描完成", f"找到 {len(envs)} 个虚拟环境")
+        QMessageBox.information(self, i18n.t("config.scan_complete"), i18n.t("config.found_envs", len(envs), "venv"))
 
     def _on_env_selected(self, index):
         """环境选择变化"""
@@ -412,7 +411,7 @@ class ConfigDialog(QDialog):
     def _browse_manual_path(self):
         """浏览手动输入路径"""
         path = QFileDialog.getExistingDirectory(
-            self, "选择环境路径"
+            self, i18n.t("config.select_env_path")
         )
         if path:
             self.manual_env_path_edit.setText(path)
@@ -420,7 +419,7 @@ class ConfigDialog(QDialog):
     def _browse_log_path(self):
         """浏览日志保存路径"""
         path = QFileDialog.getExistingDirectory(
-            self, "选择日志保存路径"
+            self, i18n.t("config.select_log_path")
         )
         if path:
             self.log_path_edit.setText(path)

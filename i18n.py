@@ -38,6 +38,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "label.script_dir": "脚本目录:",
         "label.mode": "模式:",
         "label.task": "任务:",
+        "label.task_type": "类型:",
         "label.num_envs": "环境数量:",
         "label.max_iter": "最大迭代:",
         "label.headless": "无头模式:",
@@ -50,6 +51,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "label.extra_params": "额外参数:",
         "label.session_name": "会话名称:",
         "label.status": "状态:",
+        "label.none": "无",
+        "label.type": "类型:",
 
         # Main Window - Buttons
         "btn.settings": "设置",
@@ -58,17 +61,23 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "btn.stop": "停止",
         "btn.attach": "附加到终端",
         "btn.refresh_runs": "刷新运行记录",
+        "btn.force_stop": "强制停止",
 
         # Main Window - Combobox items
         "combo.disabled": "禁用",
         "combo.public_ip": "公网IP (1)",
         "combo.local_ip": "局域网IP (2)",
         "combo.enabled": "启用 (1)",
+        "combo.no_checkpoint": "无检查点",
+        "combo.no_runs": "未找到运行记录",
+        "combo.no_logs": "logs目录不存在",
+        "combo.select_run": "-- 选择运行记录 --",
 
         # Main Window - Placeholders
         "placeholder.workspace": "选择Isaac Lab项目目录...",
         "placeholder.extra_params": "其他命令行参数，如: --logger wandb",
         "placeholder.command": "运行命令将显示在这里...",
+        "placeholder.log_content": "日志内容将显示在这里...",
 
         # Main Window - Status
         "status.ready": "就绪",
@@ -79,6 +88,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "status.session_started": "已启动会话: {}",
         "status.interrupt_sent": "已发送中断信号",
         "status.session_ended": "会话已结束",
+        "status.session_force_stopped": "会话已强制终止",
+        "status.session_stopped_preserved": "训练已停止，Session 保留",
+        "status.log_saved": "日志已保存到: {}",
+        "status.log_auto_saved": "日志已自动保存到: {}",
+        "status.log_save_failed": "自动保存日志失败: {}",
+        "status.log_dir_failed": "创建日志目录失败: {}",
+        "status.force_stopped": "已强制终止会话",
 
         # Main Window - Messages
         "msg.no_workspace": "请先选择有效的Workspace目录",
@@ -86,19 +102,26 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "msg.invalid_dir": "请选择有效的目录",
         "msg.no_scripts": "未在 {}/scripts 目录下找到训练或播放脚本",
         "msg.no_python_env": "未配置Python环境，将使用系统默认Python。\n是否继续？",
-        "msg.stop_training": "确定要停止当前训练吗？\n这会发送Ctrl+C到训练进程。",
+        "msg.stop_training": "确定要停止当前训练吗？\n这会终止tmux会话。",
         "msg.attach_terminal": "将在 {} 中附加到会话: {}\n\n按 Ctrl+B 然后按 D 可以分离会话",
         "msg.closing": "有正在运行的训练会话。\n关闭窗口不会停止训练，会话将继续在后台运行。\n\n确定要关闭吗？",
         "msg.about": "Isaac Lab Train Tool\n\n用于管理Isaac Lab项目训练和播放的图形界面工具\n\n版本: 1.0.0",
         "msg.create_session_failed": "无法创建tmux会话",
         "msg.start_failed": "启动失败: {}",
+        "msg.language_changed": "语言已更改，重启应用以完全生效。",
+        "msg.confirm": "确认",
+        "msg.warning": "警告",
+        "msg.error": "错误",
+        "msg.tip": "提示",
+        "msg.log_empty": "无日志内容",
+        "msg.log_save_title": "保存日志",
+        "msg.latest_model": "最新: {}",
+        "msg.no_model": "无",
 
-        # Run records
-        "runs.no_logs": "logs目录不存在",
-        "runs.not_found": "未找到运行记录",
-        "runs.select": "-- 选择运行记录 --",
-        "runs.no_checkpoint": "无检查点",
-        "runs.latest": "最新: {}",
+        # Isaac Lab detection
+        "isaaclab.not_configured": "Isaac Lab: 未配置Python环境（请在设置中配置）",
+        "isaaclab.not_detected": "Isaac Lab: 未检测到（请确认Python环境正确）",
+        "isaaclab.detected": "Isaac Lab: {}",
 
         # Config Dialog
         "config.title": "设置",
@@ -135,6 +158,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.venv_not_found": "未找到虚拟环境。\n您可以尝试手动输入。",
         "config.scan_complete": "扫描完成",
         "config.found_envs": "找到 {} 个{}环境",
+        "config.log_settings": "日志设置",
+        "config.auto_save_log": "自动保存日志",
+        "config.log_save_path": "日志保存路径:",
+        "config.log_save_path_placeholder": "默认保存到当前目录",
+        "config.select_env_path": "选择环境路径",
+        "config.select_log_path": "选择日志保存路径",
 
         # Log Panel
         "log.title": "日志面板",
@@ -150,10 +179,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "log.save_path_placeholder": "默认保存到当前目录",
         "log.auto_save": "自动保存日志",
 
-        # Force Stop
-        "btn.force_stop": "强制停止",
-        "msg.force_stop_confirm": "确定要强制停止吗？\n这会直接终止tmux会话。",
-        "status.force_stopped": "已强制终止会话",
+        # Tooltips
+        "tooltip.save_params": "保存当前参数为默认值",
+        "tooltip.stop": "终止当前训练会话",
     },
     LANG_EN: {
         # Menu
@@ -180,6 +208,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "label.script_dir": "Script Dir:",
         "label.mode": "Mode:",
         "label.task": "Task:",
+        "label.task_type": "Type:",
         "label.num_envs": "Num Envs:",
         "label.max_iter": "Max Iterations:",
         "label.headless": "Headless:",
@@ -192,6 +221,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "label.extra_params": "Extra Args:",
         "label.session_name": "Session Name:",
         "label.status": "Status:",
+        "label.none": "None",
+        "label.type": "Type:",
 
         # Main Window - Buttons
         "btn.settings": "Settings",
@@ -200,17 +231,23 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "btn.stop": "Stop",
         "btn.attach": "Attach Terminal",
         "btn.refresh_runs": "Refresh Runs",
+        "btn.force_stop": "Force Stop",
 
         # Main Window - Combobox items
         "combo.disabled": "Disabled",
         "combo.public_ip": "Public IP (1)",
         "combo.local_ip": "Local IP (2)",
         "combo.enabled": "Enabled (1)",
+        "combo.no_checkpoint": "No checkpoint",
+        "combo.no_runs": "No runs found",
+        "combo.no_logs": "logs directory not found",
+        "combo.select_run": "-- Select Run --",
 
         # Main Window - Placeholders
         "placeholder.workspace": "Select Isaac Lab project directory...",
         "placeholder.extra_params": "Additional CLI args, e.g.: --logger wandb",
         "placeholder.command": "Command will be displayed here...",
+        "placeholder.log_content": "Log content will be displayed here...",
 
         # Main Window - Status
         "status.ready": "Ready",
@@ -221,6 +258,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "status.session_started": "Session started: {}",
         "status.interrupt_sent": "Interrupt signal sent",
         "status.session_ended": "Session ended",
+        "status.session_force_stopped": "Session forcefully terminated",
+        "status.session_stopped_preserved": "Training stopped, session preserved",
+        "status.log_saved": "Log saved to: {}",
+        "status.log_auto_saved": "Log auto-saved to: {}",
+        "status.log_save_failed": "Failed to auto-save log: {}",
+        "status.log_dir_failed": "Failed to create log directory: {}",
+        "status.force_stopped": "Session forcefully terminated",
 
         # Main Window - Messages
         "msg.no_workspace": "Please select a valid Workspace directory first",
@@ -228,19 +272,26 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "msg.invalid_dir": "Please select a valid directory",
         "msg.no_scripts": "No train or play scripts found in {}/scripts directory",
         "msg.no_python_env": "No Python environment configured, will use system default Python.\nContinue?",
-        "msg.stop_training": "Stop current training?\nThis will send Ctrl+C to the training process.",
+        "msg.stop_training": "Stop current training?\nThis will terminate the tmux session.",
         "msg.attach_terminal": "Will attach to session in {}: {}\n\nPress Ctrl+B then D to detach from session",
         "msg.closing": "A training session is running.\nClosing the window will not stop the training, the session will continue in the background.\n\nAre you sure you want to close?",
         "msg.about": "Isaac Lab Train Tool\n\nA GUI tool for managing Isaac Lab training and play sessions\n\nVersion: 1.0.0",
         "msg.create_session_failed": "Failed to create tmux session",
         "msg.start_failed": "Failed to start: {}",
+        "msg.language_changed": "Language changed. Restart the application for full effect.",
+        "msg.confirm": "Confirm",
+        "msg.warning": "Warning",
+        "msg.error": "Error",
+        "msg.tip": "Tip",
+        "msg.log_empty": "No log content",
+        "msg.log_save_title": "Save Log",
+        "msg.latest_model": "latest: {}",
+        "msg.no_model": "None",
 
-        # Run records
-        "runs.no_logs": "logs directory not found",
-        "runs.not_found": "No runs found",
-        "runs.select": "-- Select Run --",
-        "runs.no_checkpoint": "No checkpoint",
-        "runs.latest": "latest: {}",
+        # Isaac Lab detection
+        "isaaclab.not_configured": "Isaac Lab: Python environment not configured (please configure in Settings)",
+        "isaaclab.not_detected": "Isaac Lab: Not detected (please verify Python environment)",
+        "isaaclab.detected": "Isaac Lab: {}",
 
         # Config Dialog
         "config.title": "Settings",
@@ -277,6 +328,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.venv_not_found": "No virtual environments found.\nYou can try manual input.",
         "config.scan_complete": "Scan complete",
         "config.found_envs": "Found {} {} environments",
+        "config.log_settings": "Log Settings",
+        "config.auto_save_log": "Auto Save Log",
+        "config.log_save_path": "Log Save Path:",
+        "config.log_save_path_placeholder": "Default to current directory",
+        "config.select_env_path": "Select Environment Path",
+        "config.select_log_path": "Select Log Save Path",
 
         # Log Panel
         "log.title": "Log Panel",
@@ -292,10 +349,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "log.save_path_placeholder": "Default to current directory",
         "log.auto_save": "Auto Save Log",
 
-        # Force Stop
-        "btn.force_stop": "Force Stop",
-        "msg.force_stop_confirm": "Are you sure you want to force stop?\nThis will terminate the tmux session.",
-        "status.force_stopped": "Session forcefully terminated",
+        # Tooltips
+        "tooltip.save_params": "Save current parameters as default",
+        "tooltip.stop": "Terminate current training session",
     }
 }
 
