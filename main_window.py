@@ -761,7 +761,11 @@ class MainWindow(QMainWindow):
 
         last = self.config_manager.config.last_workspace
         if last and os.path.isdir(last):
+            self.workspace_combo.blockSignals(True)
             self.workspace_combo.setEditText(last)
+            self.workspace_combo.blockSignals(False)
+            # 自动扫描上次的 workspace
+            self._scan_workspace()
 
         # 加载上次的其他配置
         config = self.config_manager.config
