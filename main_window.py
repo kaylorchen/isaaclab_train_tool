@@ -1967,7 +1967,7 @@ class MainWindow(QMainWindow):
             print(f"追加保存日志失败: {e}")
 
     def _auto_save_log(self):
-        """自动保存日志"""
+        """自动保存日志（session结束时追加剩余内容）"""
         # 直接从 tmux 获取日志，确保获取到最新内容
         if self.current_session:
             session_name = self.current_session.session_name
@@ -1983,6 +1983,15 @@ class MainWindow(QMainWindow):
         if not content or not content.strip():
             print("日志内容为空，跳过保存")
             return
+
+        # 获取上次已保存的长度
+        saved_length = self.session_log_saved_length.get(session_name, 0)
+
+        # 只保存新增部分
+        if len(content) <= saved_length:
+            return  # 没有新增内容
+
+        new_content = content[saved_length:]
 
         # 确定保存路径
         log_path = self.config_manager.config.log_save_path
@@ -2008,13 +2017,16 @@ class MainWindow(QMainWindow):
         path = os.path.join(log_path, filename)
 
         try:
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write(content)
+            # 追加写入（而不是覆盖）
+            with open(path, 'a', encoding='utf-8') as f:
+                f.write(new_content)
+            # 更新已保存长度
+            self.session_log_saved_length[session_name] = len(content)
             self.statusBar().showMessage(i18n.t("status.log_auto_saved", path))
-            print(f"日志已自动保存到: {path}")
+            print(f"日志追加保存完成: {path}")
         except Exception as e:
             self.statusBar().showMessage(i18n.t("status.log_save_failed", str(e)))
-            print(f"自动保存日志失败: {e}")
+            print(f"追加保存日志失败: {e}")
 
     def _clear_log(self):
         """清除日志内容"""
