@@ -173,3 +173,23 @@ class ConfigManager:
             return f"{self.config.python_path}/bin/python"
         else:
             return "python"
+
+    def get_python_executable(self) -> str:
+        """获取完整的Python可执行文件路径
+
+        Returns:
+            str: Python完整路径，如果无法确定则返回空字符串
+        """
+        env_type = self.config.env_type or "scan"
+
+        if env_type == "local":
+            return "/usr/bin/python3"
+
+        if self.config.conda_env_path and self.config.conda_env_name:
+            # conda环境：conda_env_path/bin/python
+            return os.path.join(self.config.conda_env_path, "bin", "python")
+        elif self.config.python_path:
+            # 虚拟环境
+            return os.path.join(self.config.python_path, "bin", "python")
+        else:
+            return ""

@@ -5,6 +5,7 @@
 import os
 import re
 import shutil
+import subprocess
 from datetime import datetime
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -82,6 +83,104 @@ def detect_terminal() -> str:
 
     # 默认返回 gnome-terminal
     return 'gnome-terminal'
+
+
+def detect_isaaclab_path(python_cmd: str = None) -> str:
+    """检测 Isaac Lab 安装路径
+
+    Args:
+        python_cmd: Python 命令路径（可选），用于查找包位置
+
+    Returns:
+        str: Isaac Lab 路径，如果未检测到则返回空字符串
+    """
+    # 1. 通过 Python 包查找（优先使用配置的 Python 环境）
+    if python_cmd:
+        try:
+            # 查找 isaaclab 包的位置
+            result = subprocess.run(
+                [python_cmd, "-c", "import isaaclab; print(isaaclab.__path__[0] if hasattr(isaaclab, '__path__') else '')"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                # isaaclab 包通常在 Isaac Lab 目录的 source/extensions 下
+                pkg_path = result.stdout.strip()
+                # 从包路径向上查找 Isaac Lab 根目录
+                # 例如: /path/to/IsaacLab/source/extensions/isaaclab.isaaclab -> /path/to/IsaacLab
+                path = pkg_path
+                while path:
+                    if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
+                       os.path.exists(os.path.join(path, 'source', 'extensions')):
+                        return path
+                    parent = os.path.dirname(path)
+                    if parent == path:
+                        break
+                    path = parent
+
+            # 尝试查找 omni.isaac.core (Isaac Sim 的核心包)
+            result = subprocess.run(
+                [python_cmd, "-c", "import omni.isaac.core; print(omni.isaac.core.__path__[0] if hasattr(omni.isaac.core, '__path__') else '')"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pkg_path = result.stdout.strip()
+                path = pkg_path
+                while path:
+                    if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
+                       os.path.basename(path).startswith('isaac'):
+                        return path
+                    parent = os.path.dirname(path)
+                    if parent == path:
+                        break
+                    path = parent
+        except Exception:
+            pass
+
+    # 2. 检查环境变量
+    for env_var in ['ISAACLAB_PATH', 'ISAAC_PATH', 'ISAACSIM_PATH']:
+        path = os.environ.get(env_var, '')
+        if path and os.path.isdir(path):
+            return path
+
+    # 3. 检查 isaaclab 命令
+    isaaclab_cmd = shutil.which('isaaclab')
+    if isaaclab_cmd:
+        # isaaclab 命令通常在 Isaac Lab 目录下
+        path = os.path.dirname(os.path.dirname(isaaclab_cmd))
+        if os.path.isdir(path):
+            # 验证是否为 Isaac Lab 目录（检查是否有 isaaclab.sh 或 source 目录）
+            if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
+               os.path.exists(os.path.join(path, 'source')) or \
+               os.path.exists(os.path.join(path, 'scripts')):
+                return path
+
+    # 4. 检查常见安装位置
+    common_paths = [
+        '~/IsaacLab',
+        '~/Isaac-Sim',
+        '~/isaac-lab',
+        '/opt/IsaacLab',
+        '/opt/isaac-lab',
+        '~/.local/share/ov/pkg',
+    ]
+
+    for p in common_paths:
+        path = os.path.expanduser(p)
+        if os.path.isdir(path):
+            # 对于 ov/pkg 目录，查找 Isaac Sim 相关子目录
+            if 'ov/pkg' in path:
+                for subdir in os.listdir(path):
+                    if 'isaac' in subdir.lower() or 'sim' in subdir.lower():
+                        subpath = os.path.join(path, subdir)
+                        if os.path.isdir(subpath):
+                            return subpath
+            else:
+                # 检查是否为 Isaac Lab 目录
+                if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
+                   os.path.exists(os.path.join(path, 'source')):
+                    return path
+
+    return ''
 
 
 def get_terminal_attach_command(terminal: str, session_name: str) -> str:
@@ -265,6 +364,28 @@ class MainWindow(QMainWindow):
         left_widget = QWidget()
         main_layout = QVBoxLayout(left_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Isaac Lab 安装路径显示
+        isaaclab_label = QLabel()
+        config = self.config_manager.config
+
+        # 获取完整的 Python 可执行文件路径
+        python_exe = self.config_manager.get_python_executable()
+
+        if not python_exe or not os.path.exists(python_exe):
+            # 未配置 Python 环境
+            isaaclab_label.setText("Isaac Lab: 未配置Python环境（请在设置中配置）")
+            isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
+        else:
+            # 使用配置的 Python 环境检测 Isaac Lab
+            isaaclab_path = detect_isaaclab_path(python_exe)
+            if isaaclab_path:
+                isaaclab_label.setText(f"Isaac Lab: {isaaclab_path}")
+                isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
+            else:
+                isaaclab_label.setText("Isaac Lab: 未检测到（请确认Python环境正确）")
+                isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
+        main_layout.addWidget(isaaclab_label)
 
         # Workspace选择区域
         workspace_group = QGroupBox("Workspace")
@@ -554,8 +675,8 @@ class MainWindow(QMainWindow):
         main_splitter.setStretchFactor(0, 1)
         main_splitter.setStretchFactor(1, 3)
 
-        # 设置日志文本框的最小宽度（约190字符 * 9px = 1710px）
-        self.log_text_edit.setMinimumWidth(1200)
+        # 设置日志文本框的最小宽度（至少192字符 * 9px = 1728px）
+        self.log_text_edit.setMinimumWidth(1728)
 
         # 将分割器设置为主布局
         splitter_layout = QVBoxLayout(central_widget)
@@ -1225,9 +1346,12 @@ class MainWindow(QMainWindow):
         # 构建命令
         cmd = self._build_command()
 
+        # 计算日志面板的字符宽度
+        char_width = self._get_log_panel_char_width()
+
         # 创建会话并运行
         try:
-            if not self.tmux_manager.create_session(session_name):
+            if not self.tmux_manager.create_session(session_name, width=char_width):
                 QMessageBox.critical(self, "错误", "无法创建tmux会话")
                 return
 
@@ -1310,6 +1434,10 @@ class MainWindow(QMainWindow):
 
         session_name = self.current_session.session_name
 
+        # 保存当前滚动位置比例（在获取新日志之前）
+        scrollbar = self.log_text_edit.verticalScrollBar()
+        scroll_ratio = scrollbar.value() / scrollbar.maximum() if scrollbar.maximum() > 0 else 1.0
+
         # 即使 session 不存在，也尝试从缓存显示
         if not self.tmux_manager.session_exists(session_name):
             # 从缓存显示
@@ -1317,6 +1445,9 @@ class MainWindow(QMainWindow):
             if cached:
                 html = parse_ansi_to_html(cached)
                 self.log_text_edit.setHtml(f"<pre style='margin:0;white-space:pre-wrap;'>{html}</pre>")
+                # 恢复滚动位置
+                new_max = scrollbar.maximum()
+                scrollbar.setValue(int(scroll_ratio * new_max))
             return
 
         output = self.tmux_manager.capture_output(session_name, lines=2000)
@@ -1328,10 +1459,14 @@ class MainWindow(QMainWindow):
             html = parse_ansi_to_html(output)
             self.log_text_edit.setHtml(f"<pre style='margin:0;white-space:pre-wrap;'>{html}</pre>")
 
-            if self.log_auto_scroll:
-                cursor = self.log_text_edit.textCursor()
-                cursor.movePosition(QTextCursor.End)
-                self.log_text_edit.setTextCursor(cursor)
+            # 恢复滚动位置
+            new_max = scrollbar.maximum()
+            if self.log_auto_scroll and scroll_ratio >= 0.95:
+                # 用户在底部且开启了自动滚动，滚动到底部
+                scrollbar.setValue(new_max)
+            else:
+                # 恢复到之前的滚动比例
+                scrollbar.setValue(int(scroll_ratio * new_max))
 
     def _save_log(self):
         """保存日志到文件"""
@@ -1416,6 +1551,35 @@ class MainWindow(QMainWindow):
     def _on_auto_scroll_changed(self, state):
         """自动滚动选项变化"""
         self.log_auto_scroll = state == Qt.Checked
+
+    def _get_log_panel_char_width(self) -> int:
+        """计算日志面板当前的字符宽度
+
+        Returns:
+            int: 字符宽度（列数）
+        """
+        # 字体大小为 9px，monospace 字体
+        font_size = 9
+        # 获取日志面板的像素宽度
+        pixel_width = self.log_text_edit.width()
+        # 计算字符宽度（考虑边距等，稍微减少一些）
+        char_width = max(80, pixel_width // font_size - 2)
+        return char_width
+
+    def resizeEvent(self, event):
+        """窗口大小变化事件"""
+        super().resizeEvent(event)
+        # 调整当前 tmux session 的宽度
+        self._adjust_tmux_width()
+
+    def _adjust_tmux_width(self):
+        """调整当前 tmux session 的宽度"""
+        if self.current_session:
+            char_width = self._get_log_panel_char_width()
+            self.tmux_manager.resize_window(
+                self.current_session.session_name,
+                width=char_width
+            )
 
     def _attach_to_session(self):
         """附加到当前会话的终端"""

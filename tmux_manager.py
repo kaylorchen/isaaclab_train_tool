@@ -27,11 +27,12 @@ class TmuxManager:
         except FileNotFoundError:
             raise RuntimeError("tmux is not installed")
 
-    def create_session(self, session_name: str, attach: bool = False) -> bool:
+    def create_session(self, session_name: str, width: int = 192, attach: bool = False) -> bool:
         """创建新的tmux会话
 
         Args:
             session_name: 会话名称
+            width: 窗口宽度（字符数）
             attach: 是否立即附加到会话
 
         Returns:
@@ -41,13 +42,35 @@ class TmuxManager:
         if self.session_exists(session_name):
             return False
 
-        cmd = ["tmux", "new-session", "-d", "-s", session_name]
+        cmd = ["tmux", "new-session", "-d", "-s", session_name, "-x", str(width)]
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             return result.returncode == 0
         except Exception as e:
             print(f"Error creating tmux session: {e}")
+            return False
+
+    def resize_window(self, session_name: str, width: int) -> bool:
+        """调整tmux窗口宽度
+
+        Args:
+            session_name: 会话名称
+            width: 新的窗口宽度（字符数）
+
+        Returns:
+            是否成功
+        """
+        if not self.session_exists(session_name):
+            return False
+
+        cmd = ["tmux", "resize-window", "-t", session_name, "-x", str(width)]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            return result.returncode == 0
+        except Exception as e:
+            print(f"Error resizing tmux window: {e}")
             return False
 
     def send_command(self, session_name: str, command: str, enter: bool = True) -> bool:
