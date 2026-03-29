@@ -218,6 +218,53 @@ class ConfigDialog(QDialog):
         env_group.setLayout(env_layout)
         layout.addWidget(env_group)
 
+        # ========== Isaac Lab 路径设置组 ==========
+        isaaclab_group = QGroupBox(i18n.t("config.isaaclab_path"))
+        isaaclab_layout = QVBoxLayout()
+
+        # 路径模式选择
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel(i18n.t("config.isaaclab_path_mode")))
+
+        self.isaaclab_mode_group = QButtonGroup(self)
+        self.isaaclab_auto_radio = QRadioButton(i18n.t("config.isaaclab_auto_detect"))
+        self.isaaclab_manual_radio = QRadioButton(i18n.t("config.isaaclab_manual"))
+
+        self.isaaclab_mode_group.addButton(self.isaaclab_auto_radio, 0)
+        self.isaaclab_mode_group.addButton(self.isaaclab_manual_radio, 1)
+
+        self.isaaclab_auto_radio.setChecked(True)
+        self.isaaclab_mode_group.buttonClicked.connect(self._on_isaaclab_mode_changed)
+
+        mode_layout.addWidget(self.isaaclab_auto_radio)
+        mode_layout.addWidget(self.isaaclab_manual_radio)
+        mode_layout.addStretch()
+        isaaclab_layout.addLayout(mode_layout)
+
+        # 手动路径输入区域
+        self.isaaclab_manual_widget = QWidget()
+        manual_path_layout = QHBoxLayout(self.isaaclab_manual_widget)
+        manual_path_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.isaaclab_path_edit = QLineEdit()
+        self.isaaclab_path_edit.setPlaceholderText(i18n.t("config.isaaclab_path_placeholder"))
+        manual_path_layout.addWidget(self.isaaclab_path_edit)
+
+        self.browse_isaaclab_btn = QPushButton(i18n.t("label.browse"))
+        self.browse_isaaclab_btn.clicked.connect(self._browse_isaaclab_path)
+        manual_path_layout.addWidget(self.browse_isaaclab_btn)
+
+        self.isaaclab_manual_widget.setVisible(False)  # 默认隐藏手动输入区域
+        isaaclab_layout.addWidget(self.isaaclab_manual_widget)
+
+        # 提示标签
+        hint_label = QLabel(i18n.t("config.isaaclab_path_hint"))
+        hint_label.setStyleSheet("color: #666; font-size: 11px;")
+        isaaclab_layout.addWidget(hint_label)
+
+        isaaclab_group.setLayout(isaaclab_layout)
+        layout.addWidget(isaaclab_group)
+
         # ========== Train模式参数组 ==========
         train_group = QGroupBox(i18n.t("config.train_params"))
         train_layout = QFormLayout()
@@ -424,6 +471,22 @@ class ConfigDialog(QDialog):
         if path:
             self.log_path_edit.setText(path)
 
+    def _on_isaaclab_mode_changed(self, button):
+        """Isaac Lab路径模式切换"""
+        idx = self.isaaclab_mode_group.checkedId()
+        if idx == 0:  # 自动检测
+            self.isaaclab_manual_widget.setVisible(False)
+        else:  # 手动输入
+            self.isaaclab_manual_widget.setVisible(True)
+
+    def _browse_isaaclab_path(self):
+        """浏览Isaac Lab路径"""
+        path = QFileDialog.getExistingDirectory(
+            self, i18n.t("config.select_isaaclab_path")
+        )
+        if path:
+            self.isaaclab_path_edit.setText(path)
+
     def _load_config(self):
         """加载配置到界面"""
         config = self.config_manager.config
@@ -497,6 +560,16 @@ class ConfigDialog(QDialog):
         self.auto_save_log_check.setChecked(config.auto_save_log)
         self.log_path_edit.setText(config.log_save_path or "")
 
+        # Isaac Lab 路径设置
+        isaaclab_mode = config.isaaclab_path_mode or "auto"
+        if isaaclab_mode == "auto":
+            self.isaaclab_auto_radio.setChecked(True)
+            self.isaaclab_manual_widget.setVisible(False)
+        else:
+            self.isaaclab_manual_radio.setChecked(True)
+            self.isaaclab_manual_widget.setVisible(True)
+        self.isaaclab_path_edit.setText(config.isaaclab_path_manual or "")
+
     def _save_and_close(self):
         """保存配置并关闭"""
         config = self.config_manager.config
@@ -556,6 +629,15 @@ class ConfigDialog(QDialog):
         # 日志设置
         config.auto_save_log = self.auto_save_log_check.isChecked()
         config.log_save_path = self.log_path_edit.text()
+
+        # Isaac Lab 路径设置
+        isaaclab_mode_idx = self.isaaclab_mode_group.checkedId()
+        if isaaclab_mode_idx == 0:  # 自动检测
+            config.isaaclab_path_mode = "auto"
+            config.isaaclab_path_manual = ""
+        else:  # 手动输入
+            config.isaaclab_path_mode = "manual"
+            config.isaaclab_path_manual = self.isaaclab_path_edit.text()
 
         self.config_manager.save()
         self.accept()

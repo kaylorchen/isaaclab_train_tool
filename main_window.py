@@ -127,92 +127,78 @@ def detect_isaaclab_path(python_cmd: str = None) -> str:
     Returns:
         str: Isaac Lab 路径，如果未检测到则返回空字符串
     """
-    # 1. 通过 Python 包查找（优先使用配置的 Python 环境）
-    if python_cmd:
-        try:
-            # 查找 isaaclab 包的位置
-            result = subprocess.run(
-                [python_cmd, "-c", "import isaaclab; print(isaaclab.__path__[0] if hasattr(isaaclab, '__path__') else '')"],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                # isaaclab 包通常在 Isaac Lab 目录的 source/extensions 下
-                pkg_path = result.stdout.strip()
-                # 从包路径向上查找 Isaac Lab 根目录
-                # 例如: /path/to/IsaacLab/source/extensions/isaaclab.isaaclab -> /path/to/IsaacLab
+    print(f"[IsaacLab检测] 开始检测，python_cmd={python_cmd}")
+
+    if not python_cmd:
+        print(f"[IsaacLab检测] 未提供 python_cmd，无法检测")
+        return ''
+
+    # 使用 pip show isaaclab 获取包信息
+    print(f"[IsaacLab检测] 执行 pip show isaaclab...")
+    try:
+        result = subprocess.run(
+            [python_cmd, "-m", "pip", "show", "isaaclab"],
+            capture_output=True, text=True, timeout=10
+        )
+        print(f"[IsaacLab检测] pip show 结果: returncode={result.returncode}")
+        print(f"[IsaacLab检测] stdout:\n{result.stdout}")
+        print(f"[IsaacLab检测] stderr: {result.stderr.strip()[:200]}")
+
+        if result.returncode == 0 and result.stdout.strip():
+            # 解析 Location 或 Editable project location
+            location = None
+            editable_location = None
+
+            for line in result.stdout.split('\n'):
+                if line.startswith('Location:'):
+                    location = line.split(':', 1)[1].strip()
+                elif line.startswith('Editable project location:'):
+                    editable_location = line.split(':', 1)[1].strip()
+
+            print(f"[IsaacLab检测] Location: {location}")
+            print(f"[IsaacLab检测] Editable location: {editable_location}")
+
+            # 优先使用 Editable project location（-e 安装的方式）
+            pkg_path = editable_location or location
+
+            if pkg_path:
+                print(f"[IsaacLab检测] 包路径: {pkg_path}")
+                # isaaclab 包路径通常是: /path/to/IsaacLab/source/isaaclab
+                # Isaac Lab 根目录就是包路径的父目录的父目录（去掉 source/isaaclab）
+                # 或者直接去掉 /source/isaaclab 部分
+
+                # 尝试向上查找包含 isaaclab.sh 或 source 目录的路径
                 path = pkg_path
                 while path:
-                    if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
-                       os.path.exists(os.path.join(path, 'source', 'extensions')):
+                    isaaclab_sh = os.path.join(path, 'isaaclab.sh')
+                    source_dir = os.path.join(path, 'source')
+
+                    if os.path.exists(isaaclab_sh):
+                        print(f"[IsaacLab检测] 找到 isaaclab.sh: {isaaclab_sh}")
+                        print(f"[IsaacLab检测] Isaac Lab 根目录: {path}")
                         return path
+
+                    if os.path.isdir(source_dir):
+                        # 检查 source 目录下是否有 isaaclab 子目录
+                        isaaclab_subdir = os.path.join(source_dir, 'isaaclab')
+                        if os.path.isdir(isaaclab_subdir):
+                            print(f"[IsaacLab检测] 找到 source/isaaclab 目录")
+                            print(f"[IsaacLab检测] Isaac Lab 根目录: {path}")
+                            return path
+
                     parent = os.path.dirname(path)
                     if parent == path:
                         break
                     path = parent
 
-            # 尝试查找 omni.isaac.core (Isaac Sim 的核心包)
-            result = subprocess.run(
-                [python_cmd, "-c", "import omni.isaac.core; print(omni.isaac.core.__path__[0] if hasattr(omni.isaac.core, '__path__') else '')"],
-                capture_output=True, text=True, timeout=5
-            )
-            if result.returncode == 0 and result.stdout.strip():
-                pkg_path = result.stdout.strip()
-                path = pkg_path
-                while path:
-                    if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
-                       os.path.basename(path).startswith('isaac'):
-                        return path
-                    parent = os.path.dirname(path)
-                    if parent == path:
-                        break
-                    path = parent
-        except Exception:
-            pass
+                print(f"[IsaacLab检测] 从包路径向上查找未找到根目录")
 
-    # 2. 检查环境变量
-    for env_var in ['ISAACLAB_PATH', 'ISAAC_PATH', 'ISAACSIM_PATH']:
-        path = os.environ.get(env_var, '')
-        if path and os.path.isdir(path):
-            return path
+    except subprocess.TimeoutExpired:
+        print(f"[IsaacLab检测] pip show 超时（10秒）")
+    except Exception as e:
+        print(f"[IsaacLab检测] pip show 异常: {type(e).__name__}: {e}")
 
-    # 3. 检查 isaaclab 命令
-    isaaclab_cmd = shutil.which('isaaclab')
-    if isaaclab_cmd:
-        # isaaclab 命令通常在 Isaac Lab 目录下
-        path = os.path.dirname(os.path.dirname(isaaclab_cmd))
-        if os.path.isdir(path):
-            # 验证是否为 Isaac Lab 目录（检查是否有 isaaclab.sh 或 source 目录）
-            if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
-               os.path.exists(os.path.join(path, 'source')) or \
-               os.path.exists(os.path.join(path, 'scripts')):
-                return path
-
-    # 4. 检查常见安装位置
-    common_paths = [
-        '~/IsaacLab',
-        '~/Isaac-Sim',
-        '~/isaac-lab',
-        '/opt/IsaacLab',
-        '/opt/isaac-lab',
-        '~/.local/share/ov/pkg',
-    ]
-
-    for p in common_paths:
-        path = os.path.expanduser(p)
-        if os.path.isdir(path):
-            # 对于 ov/pkg 目录，查找 Isaac Sim 相关子目录
-            if 'ov/pkg' in path:
-                for subdir in os.listdir(path):
-                    if 'isaac' in subdir.lower() or 'sim' in subdir.lower():
-                        subpath = os.path.join(path, subdir)
-                        if os.path.isdir(subpath):
-                            return subpath
-            else:
-                # 检查是否为 Isaac Lab 目录
-                if os.path.exists(os.path.join(path, 'isaaclab.sh')) or \
-                   os.path.exists(os.path.join(path, 'source')):
-                    return path
-
+    print(f"[IsaacLab检测] 未找到 Isaac Lab")
     return ''
 
 
@@ -415,27 +401,24 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(left_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Isaac Lab 安装路径显示
+        # Isaac Lab 安装路径显示（包含标签、自动检测和手动配置按钮）
+        self.isaaclab_layout = QHBoxLayout()
         self.isaaclab_label = QLabel()
-        config = self.config_manager.config
+        self.isaaclab_auto_btn = QPushButton(i18n.t("btn.auto_detect"))
+        self.isaaclab_auto_btn.setStyleSheet("padding: 2px 8px;")
+        self.isaaclab_auto_btn.clicked.connect(self._auto_detect_isaaclab_path)
+        self.isaaclab_manual_btn = QPushButton(i18n.t("btn.manual_config"))
+        self.isaaclab_manual_btn.setStyleSheet("padding: 2px 8px;")
+        self.isaaclab_manual_btn.clicked.connect(self._manual_config_isaaclab_path)
 
-        # 获取完整的 Python 可执行文件路径
-        python_exe = self.config_manager.get_python_executable()
+        self.isaaclab_layout.addWidget(self.isaaclab_label)
+        self.isaaclab_layout.addWidget(self.isaaclab_auto_btn)
+        self.isaaclab_layout.addWidget(self.isaaclab_manual_btn)
+        self.isaaclab_layout.addStretch()
 
-        if not python_exe or not os.path.exists(python_exe):
-            # 未配置 Python 环境
-            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
-            self.isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
-        else:
-            # 使用配置的 Python 环境检测 Isaac Lab
-            isaaclab_path = detect_isaaclab_path(python_exe)
-            if isaaclab_path:
-                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
-                self.isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
-            else:
-                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
-                self.isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
-        main_layout.addWidget(self.isaaclab_label)
+        self._update_isaaclab_display()
+
+        main_layout.addLayout(self.isaaclab_layout)
 
         # Workspace选择区域
         self.workspace_group = QGroupBox(i18n.t("group.workspace"))
@@ -840,16 +823,10 @@ class MainWindow(QMainWindow):
         self.help_menu.setTitle(i18n.t("menu.help"))
         self.about_action.setText(i18n.t("menu.about"))
 
-        # 更新 Isaac Lab 标签
-        python_exe = self.config_manager.get_python_executable()
-        if not python_exe or not os.path.exists(python_exe):
-            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
-        else:
-            isaaclab_path = detect_isaaclab_path(python_exe)
-            if isaaclab_path:
-                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
-            else:
-                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+        # 更新 Isaac Lab 标签和按钮
+        self.isaaclab_auto_btn.setText(i18n.t("btn.auto_detect"))
+        self.isaaclab_manual_btn.setText(i18n.t("btn.manual_config"))
+        self._update_isaaclab_display()
 
         # 更新 GroupBox 标题
         self.workspace_group.setTitle(i18n.t("group.workspace"))
@@ -1234,6 +1211,116 @@ class MainWindow(QMainWindow):
         else:
             self.cmd_preview_edit.clear()
 
+    def _update_isaaclab_display(self):
+        """更新 Isaac Lab 显示"""
+        config = self.config_manager.config
+
+        # 优先使用手动指定的路径
+        if config.isaaclab_path_mode == "manual" and config.isaaclab_path_manual:
+            manual_path = config.isaaclab_path_manual
+            if os.path.isdir(manual_path):
+                # 验证手动路径是否有效
+                has_sh = os.path.exists(os.path.join(manual_path, 'isaaclab.sh'))
+                has_source = os.path.exists(os.path.join(manual_path, 'source'))
+                if has_sh or has_source:
+                    self.isaaclab_label.setText(i18n.t("isaaclab.manual", manual_path))
+                    self.isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
+                    self.isaaclab_auto_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setText(i18n.t("btn.change_path"))
+                else:
+                    self.isaaclab_label.setText(i18n.t("isaaclab.manual", manual_path) + " (路径可能无效)")
+                    self.isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
+                    self.isaaclab_auto_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setText(i18n.t("btn.change_path"))
+            else:
+                self.isaaclab_label.setText(i18n.t("isaaclab.manual", manual_path) + " (路径不存在)")
+                self.isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
+                self.isaaclab_auto_btn.setVisible(True)
+                self.isaaclab_manual_btn.setVisible(True)
+                self.isaaclab_manual_btn.setText(i18n.t("btn.change_path"))
+        else:
+            # 自动检测模式
+            # 获取完整的 Python 可执行文件路径
+            python_exe = self.config_manager.get_python_executable()
+
+            if not python_exe or not os.path.exists(python_exe):
+                # 未配置 Python 环境
+                self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
+                self.isaaclab_label.setStyleSheet("color: #FF9800; font-weight: bold; padding: 5px;")
+                self.isaaclab_auto_btn.setVisible(False)
+                self.isaaclab_manual_btn.setVisible(True)
+                self.isaaclab_manual_btn.setText(i18n.t("btn.manual_config"))
+            else:
+                # 使用配置的 Python 环境检测 Isaac Lab
+                isaaclab_path = detect_isaaclab_path(python_exe)
+                if isaaclab_path:
+                    self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
+                    self.isaaclab_label.setStyleSheet("color: #4CAF50; font-weight: bold; padding: 5px;")
+                    self.isaaclab_auto_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setVisible(False)
+                else:
+                    self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+                    self.isaaclab_label.setStyleSheet("color: #f44336; font-weight: bold; padding: 5px;")
+                    self.isaaclab_auto_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setVisible(True)
+                    self.isaaclab_manual_btn.setText(i18n.t("btn.manual_config"))
+
+    def _manual_config_isaaclab_path(self):
+        """手动配置 Isaac Lab 路径"""
+        # 弹出路径选择对话框
+        current_path = self.config_manager.config.isaaclab_path_manual or ""
+        path = QFileDialog.getExistingDirectory(
+            self, i18n.t("config.select_isaaclab_path"), current_path
+        )
+        if path:
+            # 验证路径是否有效
+            has_sh = os.path.exists(os.path.join(path, 'isaaclab.sh'))
+            has_source = os.path.exists(os.path.join(path, 'source'))
+
+            if not has_sh and not has_source:
+                reply = QMessageBox.question(
+                    self, i18n.t("msg.warning"),
+                    i18n.t("isaaclab.invalid_path_hint"),
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+
+            # 保存配置
+            self.config_manager.config.isaaclab_path_mode = "manual"
+            self.config_manager.config.isaaclab_path_manual = path
+            self.config_manager.save()
+
+            # 更新显示
+            self._update_isaaclab_display()
+            self.statusBar().showMessage(i18n.t("isaaclab.path_saved", path), 3000)
+
+    def _auto_detect_isaaclab_path(self):
+        """自动检测 Isaac Lab 路径"""
+        python_exe = self.config_manager.get_python_executable()
+
+        if not python_exe or not os.path.exists(python_exe):
+            QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("isaaclab.no_python_env"))
+            return
+
+        self.statusBar().showMessage(i18n.t("isaaclab.detecting"))
+        QApplication.processEvents()  # 更新UI
+
+        isaaclab_path = detect_isaaclab_path(python_exe)
+
+        if isaaclab_path:
+            # 切换到自动检测模式
+            self.config_manager.config.isaaclab_path_mode = "auto"
+            self.config_manager.config.isaaclab_path_manual = ""
+            self.config_manager.save()
+
+            self._update_isaaclab_display()
+            self.statusBar().showMessage(i18n.t("isaaclab.detected", isaaclab_path), 3000)
+        else:
+            QMessageBox.information(self, i18n.t("msg.tip"), i18n.t("isaaclab.detect_failed"))
+
     def _browse_workspace(self):
         """浏览选择workspace"""
         path = QFileDialog.getExistingDirectory(
@@ -1256,9 +1343,13 @@ class MainWindow(QMainWindow):
 
     def _create_new_project(self):
         """生成新的 Isaac Lab 工程"""
-        # 检测 Isaac Lab 路径
-        python_exe = self.config_manager.get_python_executable()
-        isaaclab_path = detect_isaaclab_path(python_exe) if python_exe else ""
+        # 获取 Isaac Lab 路径（优先手动配置）
+        config = self.config_manager.config
+        if config.isaaclab_path_mode == "manual" and config.isaaclab_path_manual:
+            isaaclab_path = config.isaaclab_path_manual
+        else:
+            python_exe = self.config_manager.get_python_executable()
+            isaaclab_path = detect_isaaclab_path(python_exe) if python_exe else ""
 
         if not isaaclab_path:
             QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("new_project.no_isaaclab"))
@@ -2164,15 +2255,7 @@ class MainWindow(QMainWindow):
         self._load_params_from_config()
 
         # 更新 Isaac Lab 标签
-        python_exe = self.config_manager.get_python_executable()
-        if not python_exe or not os.path.exists(python_exe):
-            self.isaaclab_label.setText(i18n.t("isaaclab.not_configured"))
-        else:
-            isaaclab_path = detect_isaaclab_path(python_exe)
-            if isaaclab_path:
-                self.isaaclab_label.setText(i18n.t("isaaclab.detected", isaaclab_path))
-            else:
-                self.isaaclab_label.setText(i18n.t("isaaclab.not_detected"))
+        self._update_isaaclab_display()
 
     def _show_about(self):
         """显示关于对话框"""

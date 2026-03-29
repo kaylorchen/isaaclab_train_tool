@@ -139,8 +139,28 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Isaac Lab detection
         "isaaclab.not_configured": "Isaac Lab: 未配置Python环境（请在设置中配置）",
-        "isaaclab.not_detected": "Isaac Lab: 未检测到（请确认Python环境正确）",
+        "isaaclab.not_detected": "Isaac Lab: 未检测到",
         "isaaclab.detected": "Isaac Lab: {}",
+        "isaaclab.manual": "Isaac Lab: {}",
+        "isaaclab.invalid_path_hint": "该路径未找到 isaaclab.sh 或 source 目录，\n可能不是有效的 Isaac Lab 安装目录。\n\n是否仍要使用此路径？",
+        "isaaclab.path_saved": "Isaac Lab 路径已保存: {}",
+        "isaaclab.detecting": "正在检测 Isaac Lab...",
+        "isaaclab.no_python_env": "请先在设置中配置 Python 环境",
+        "isaaclab.detect_failed": "自动检测失败，请尝试手动配置",
+
+        # Isaac Lab path settings
+        "config.isaaclab_path": "Isaac Lab路径",
+        "config.isaaclab_path_mode": "路径获取方式:",
+        "config.isaaclab_auto_detect": "自动检测",
+        "config.isaaclab_manual": "手动指定",
+        "config.isaaclab_path_placeholder": "Isaac Lab安装路径",
+        "config.select_isaaclab_path": "选择Isaac Lab路径",
+        "config.isaaclab_path_hint": "Isaac Lab根目录通常包含 isaaclab.sh 和 source 目录",
+
+        # Buttons
+        "btn.manual_config": "手动配置",
+        "btn.change_path": "更改路径",
+        "btn.auto_detect": "自动检测",
 
         # New Project
         "new_project.title": "生成新工程",
@@ -340,8 +360,28 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Isaac Lab detection
         "isaaclab.not_configured": "Isaac Lab: Python environment not configured (please configure in Settings)",
-        "isaaclab.not_detected": "Isaac Lab: Not detected (please verify Python environment)",
+        "isaaclab.not_detected": "Isaac Lab: Not detected",
         "isaaclab.detected": "Isaac Lab: {}",
+        "isaaclab.manual": "Isaac Lab: {}",
+        "isaaclab.invalid_path_hint": "The path does not contain isaaclab.sh or source directory,\nit may not be a valid Isaac Lab installation.\n\nUse this path anyway?",
+        "isaaclab.path_saved": "Isaac Lab path saved: {}",
+        "isaaclab.detecting": "Detecting Isaac Lab...",
+        "isaaclab.no_python_env": "Please configure Python environment in Settings first",
+        "isaaclab.detect_failed": "Auto detection failed, please try manual configuration",
+
+        # Isaac Lab path settings
+        "config.isaaclab_path": "Isaac Lab Path",
+        "config.isaaclab_path_mode": "Path Mode:",
+        "config.isaaclab_auto_detect": "Auto Detect",
+        "config.isaaclab_manual": "Manual",
+        "config.isaaclab_path_placeholder": "Isaac Lab installation path",
+        "config.select_isaaclab_path": "Select Isaac Lab Path",
+        "config.isaaclab_path_hint": "Isaac Lab root directory usually contains isaaclab.sh and source folder",
+
+        # Buttons
+        "btn.manual_config": "Manual Config",
+        "btn.change_path": "Change Path",
+        "btn.auto_detect": "Auto Detect",
 
         # New Project
         "new_project.title": "Create New Project",

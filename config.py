@@ -32,6 +32,9 @@ class AppConfig:
     log_save_path: str = ""
     # 自动保存日志
     auto_save_log: bool = False
+    # Isaac Lab 路径设置
+    isaaclab_path_mode: str = "auto"  # auto 或 manual
+    isaaclab_path_manual: str = ""  # 手动指定的 Isaac Lab 路径
 
     def __post_init__(self):
         if self.default_params is None:
@@ -77,6 +80,9 @@ class AppConfig:
             language=data.get("language", "zh"),
             log_save_path=data.get("log_save_path", ""),
             auto_save_log=data.get("auto_save_log", False),
+            # Isaac Lab 路径设置
+            isaaclab_path_mode=data.get("isaaclab_path_mode", "auto"),
+            isaaclab_path_manual=data.get("isaaclab_path_manual", ""),
         )
 
 
