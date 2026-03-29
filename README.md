@@ -4,15 +4,35 @@ A PyQt5-based GUI tool for managing Isaac Lab training and play sessions.
 
 ## Features
 
-- Workspace scanning and task discovery
-- Conda/venv environment management
-- Train/Play mode with parameter configuration
-- tmux session management for training processes
-- Live stream and camera options
-- Resume training with checkpoint selection
-- Terminal auto-detection for session attachment
-- Configuration persistence
-- Multi-language support (Chinese/English)
+- **Workspace Management**
+  - Workspace scanning and task discovery
+  - Workspace history dropdown (up to 20 recent workspaces)
+  - Auto-scan on startup, browse selection, and workspace change
+
+- **Environment Management**
+  - Conda/venv environment configuration
+  - Source package installation/uninstallation detection
+  - One-click source install with pip install -e
+
+- **Training & Play**
+  - Train/Play mode with parameter configuration
+  - Resume training with checkpoint selection
+  - Live stream and camera options
+  - Automatic mode detection from task name
+
+- **Session Management**
+  - tmux session management for training processes
+  - Terminal auto-detection for session attachment
+  - Large history buffer (50000 lines) for log capture
+
+- **Log Management**
+  - Real-time log display with ANSI color support
+  - Auto-save log every 3 seconds (append mode)
+  - Manual log save option
+
+- **Configuration**
+  - Configuration persistence
+  - Multi-language support (Chinese/English)
 
 ## Requirements
 
@@ -80,12 +100,13 @@ python3 main.py
 
 ### Basic Workflow
 
-1. **Select Workspace**: Click "Browse..." or use "File > Select Workspace..." to choose your Isaac Lab project directory
-2. **Scan**: Click "Scan" to discover available scripts and tasks
-3. **Configure Environment**: Go to "Edit > Settings..." to configure your Python/Conda environment
-4. **Select Task**: Choose the script directory, mode (Train/Play), and task
-5. **Set Parameters**: Configure training parameters (num_envs, max_iterations, etc.)
-6. **Run**: Click "Run" to start the training in a tmux session
+1. **Select Workspace**: Click "Browse..." or use "File > Select Workspace..." to choose your Isaac Lab project directory. The workspace history dropdown shows recent workspaces.
+2. **Auto Scan**: The tool automatically scans on startup (if last workspace exists) and after selecting a directory.
+3. **Configure Environment**: Go to "Edit > Settings..." to configure your Python/Conda environment.
+4. **Source Install**: If the workspace has a `source/` directory, the tool detects installation status. Click "Install Source" to install with `pip install -e`.
+5. **Select Task**: Choose the script directory, mode (Train/Play), and task. Mode is auto-detected from task name.
+6. **Set Parameters**: Configure training parameters (num_envs, max_iterations, etc.).
+7. **Run**: Click "Run" to start the training in a tmux session.
 
 ### Language Switching
 
@@ -103,6 +124,10 @@ Use "Edit > Language" menu to switch between Chinese and English.
 2. Click "Refresh Runs" to load available runs
 3. Select a run and checkpoint (.pt file) to load
 
+### Log Auto-Save
+
+Logs are automatically saved every 3 seconds to the configured log directory (append mode). This prevents log loss even if the application crashes.
+
 ## Configuration
 
 Configuration is stored in `~/.config/isaaclab_train_tool/config.json`:
@@ -110,7 +135,9 @@ Configuration is stored in `~/.config/isaaclab_train_tool/config.json`:
 - **Python Environment**: Conda or venv environment settings
 - **Default Parameters**: Saved training/play parameters
 - **Recent Workspaces**: Quick access to recently used projects
+- **Workspace History**: Up to 20 recent workspace paths
 - **Language**: UI language preference
+- **Log Save Path**: Directory for auto-saved logs
 
 ## Keyboard Shortcuts
 
@@ -133,7 +160,8 @@ isaaclab_train_tool/
 ├── tmux_manager.py      # tmux session management
 ├── i18n.py              # Internationalization
 ├── requirements.txt     # Python dependencies
-└── README.md            # This file
+├── README.md            # English documentation
+└── README_CN.md         # Chinese documentation
 ```
 
 ## Troubleshooting
@@ -153,6 +181,27 @@ Make sure the selected directory is a valid Isaac Lab project with a `scripts/` 
 The tool auto-detects your terminal emulator. If it doesn't work:
 - Make sure tmux is installed
 - Try installing a supported terminal (gnome-terminal, konsole, xfce4-terminal, etc.)
+
+### Log file limited to ~2000 lines
+
+For new sessions, the tmux history-limit is set to 50000 lines. Old sessions created before v1.0.1 may still have the default 2000 limit. Create a new session to use the increased limit.
+
+## Changelog
+
+### v1.0.1
+- Add workspace history dropdown (up to 20 entries)
+- Add source package installation/uninstallation feature
+- Add auto-scan on startup and browse selection
+- Fix tmux history-limit (now 50000 lines)
+- Add real-time log append save (every 3 seconds)
+- Fix signal connection issues
+
+### v1.0.0
+- Initial release
+- Basic workspace scanning and task discovery
+- Train/Play mode support
+- tmux session management
+- Multi-language support (Chinese/English)
 
 ## License
 
