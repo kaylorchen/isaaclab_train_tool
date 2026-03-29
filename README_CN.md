@@ -49,11 +49,16 @@
 sudo apt update
 sudo apt install python3 python3-pip python3-venv tmux
 
+# PyQt5 GUI 支持所需的库（某些系统必需）
+sudo apt install libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0
+
 # Fedora
 sudo dnf install python3 python3-pip tmux
+sudo dnf install xcb-util-cursor libxkbcommon-x11
 
 # Arch Linux
 sudo pacman -S python python-pip tmux
+sudo pacman -S xcb-util-cursor libxkbcommon
 ```
 
 ### 2. 克隆或下载
@@ -74,13 +79,20 @@ source venv/bin/activate
 ### 4. 安装 Python 依赖
 
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 或手动安装：
 
 ```bash
-pip install PyQt5
+pip3 install PyQt5>=5.15.0
+```
+
+**注意：** 如果安装后遇到 Qt 相关错误，请确保已安装步骤 1 中的系统依赖。某些系统可能还需要：
+
+```bash
+# 如需要，安装额外的 Qt 库
+pip3 install PyQt5-Qt5 PyQt5-sip
 ```
 
 ## 使用方法

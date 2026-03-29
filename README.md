@@ -51,11 +51,16 @@ A PyQt5-based GUI tool for managing Isaac Lab training and play sessions.
 sudo apt update
 sudo apt install python3 python3-pip python3-venv tmux
 
+# For PyQt5 GUI support (required on some systems)
+sudo apt install libxcb-xinerama0 libxcb-cursor0 libxkbcommon-x11-0
+
 # Fedora
 sudo dnf install python3 python3-pip tmux
+sudo dnf install xcb-util-cursor libxkbcommon-x11
 
 # Arch Linux
 sudo pacman -S python python-pip tmux
+sudo pacman -S xcb-util-cursor libxkbcommon
 ```
 
 ### 2. Clone or Download
@@ -76,13 +81,20 @@ source venv/bin/activate
 ### 4. Install Python Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 Or install manually:
 
 ```bash
-pip install PyQt5
+pip3 install PyQt5>=5.15.0
+```
+
+**Note:** If you encounter Qt-related errors after installation, ensure the system dependencies in step 1 are installed. On some systems, you may also need:
+
+```bash
+# Additional Qt libraries if needed
+pip3 install PyQt5-Qt5 PyQt5-sip
 ```
 
 ## Usage
