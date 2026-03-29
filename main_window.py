@@ -436,9 +436,10 @@ class MainWindow(QMainWindow):
         # 第一行：路径输入和按钮
         workspace_layout = QHBoxLayout()
 
-        self.workspace_edit = QLineEdit()
-        self.workspace_edit.setPlaceholderText(i18n.t("placeholder.workspace"))
-        self.workspace_edit.textChanged.connect(self._on_workspace_changed)
+        self.workspace_combo = QComboBox()
+        self.workspace_combo.setEditable(True)
+        self.workspace_combo.lineEdit().setPlaceholderText(i18n.t("placeholder.workspace"))
+        self.workspace_combo.currentTextChanged.connect(self._on_workspace_changed)
 
         self.browse_btn = QPushButton(i18n.t("label.browse"))
         self.browse_btn.clicked.connect(self._browse_workspace)
@@ -446,7 +447,7 @@ class MainWindow(QMainWindow):
         self.scan_btn = QPushButton(i18n.t("label.scan"))
         self.scan_btn.clicked.connect(self._scan_workspace)
 
-        workspace_layout.addWidget(self.workspace_edit)
+        workspace_layout.addWidget(self.workspace_combo)
         workspace_layout.addWidget(self.browse_btn)
         workspace_layout.addWidget(self.scan_btn)
 
@@ -755,14 +756,52 @@ class MainWindow(QMainWindow):
 
     def _load_last_workspace(self):
         """加载上次的workspace和配置"""
+        # 加载历史记录
+        self._load_workspace_history()
+
         last = self.config_manager.config.last_workspace
         if last and os.path.isdir(last):
-            self.workspace_edit.setText(last)
+            self.workspace_combo.setEditText(last)
 
         # 加载上次的其他配置
         config = self.config_manager.config
         if config.last_extra_params:
             self.extra_params_edit.setText(config.last_extra_params)
+
+    def _load_workspace_history(self):
+        """加载 Workspace 历史记录"""
+        self.workspace_combo.blockSignals(True)
+        self.workspace_combo.clear()
+        history = self.config_manager.config.workspace_history or []
+        for path in history:
+            if os.path.isdir(path):
+                self.workspace_combo.addItem(path)
+        self.workspace_combo.blockSignals(False)
+
+    def _save_workspace_history(self, path: str):
+        """保存 Workspace 到历史记录"""
+        if not path or not os.path.isdir(path):
+            return
+
+        history = list(self.config_manager.config.workspace_history or [])
+
+        # 如果已存在，移到最前面
+        if path in history:
+            history.remove(path)
+
+        history.insert(0, path)
+
+        # 最多保留 20 条
+        history = history[:20]
+
+        self.config_manager.config.workspace_history = history
+        self.config_manager.save()
+
+        # 更新下拉列表（阻止信号触发）
+        self._load_workspace_history()
+        self.workspace_combo.blockSignals(True)
+        self.workspace_combo.setEditText(path)
+        self.workspace_combo.blockSignals(False)
 
     def _switch_language(self, lang: str):
         """切换语言"""
@@ -830,7 +869,7 @@ class MainWindow(QMainWindow):
         self.log_auto_scroll_check.setText(i18n.t("log.auto_scroll"))
 
         # 更新占位符
-        self.workspace_edit.setPlaceholderText(i18n.t("placeholder.workspace"))
+        self.workspace_combo.lineEdit().setPlaceholderText(i18n.t("placeholder.workspace"))
         self.extra_params_edit.setPlaceholderText(i18n.t("placeholder.extra_params"))
         self.cmd_preview_edit.setPlaceholderText(i18n.t("placeholder.command"))
         self.log_text_edit.setPlaceholderText(i18n.t("placeholder.log_content"))
@@ -1186,14 +1225,14 @@ class MainWindow(QMainWindow):
     def _browse_workspace(self):
         """浏览选择workspace"""
         path = QFileDialog.getExistingDirectory(
-            self, "选择Isaac Lab项目目录"
+            self, i18n.t("msg.select_dir")
         )
         if path:
-            self.workspace_edit.setText(path)
+            self.workspace_combo.setEditText(path)
 
     def _open_workspace_dir(self):
         """打开当前workspace目录"""
-        path = self.workspace_edit.text()
+        path = self.workspace_combo.currentText()
         if path and os.path.isdir(path):
             # 使用系统默认文件管理器打开目录
             import subprocess
@@ -1292,7 +1331,7 @@ class MainWindow(QMainWindow):
 
     def _scan_workspace(self):
         """扫描workspace"""
-        path = self.workspace_edit.text()
+        path = self.workspace_combo.currentText()
         if not path or not os.path.isdir(path):
             QMessageBox.warning(self, i18n.t("msg.error"), i18n.t("msg.invalid_dir"))
             return
@@ -1342,6 +1381,9 @@ class MainWindow(QMainWindow):
             # 保存到最近使用的workspace
             self.config_manager.add_recent_workspace(path)
 
+            # 保存到历史记录
+            self._save_workspace_history(path)
+
             self.statusBar().showMessage(i18n.t("status.scan_complete", len(self.current_workspace.tasks)))
 
         except Exception as e:
@@ -1366,8 +1408,8 @@ class MainWindow(QMainWindow):
         self.install_source_btn.setText(i18n.t("btn.install_source"))
 
     def _check_source_install(self):
-        """检测 source 目录是否存在"""
-        workspace_path = self.workspace_edit.text()
+        """检测源码包是否已安装"""
+        workspace_path = self.workspace_combo.currentText()
         source_dir = os.path.join(workspace_path, "source")
 
         if not os.path.isdir(source_dir):
@@ -1386,15 +1428,71 @@ class MainWindow(QMainWindow):
             self.install_source_btn.setEnabled(False)
             return
 
-        # source 目录存在，启用按钮
-        self.source_status_label.setText(f"source/{project_name}")
-        self.source_status_label.setStyleSheet("color: #666; font-size: 11px;")
-        self.install_source_btn.setText(i18n.t("btn.install_source"))
-        self.install_source_btn.setEnabled(True)
+        # 获取 Python 可执行文件
+        python_exe = self.config_manager.get_python_executable()
+        if not python_exe or not os.path.exists(python_exe):
+            python_exe = "python3"
+
+        # 使用 pip show 检测包是否安装
+        try:
+            result = subprocess.run(
+                [python_exe, "-m", "pip", "show", project_name],
+                capture_output=True, text=True, timeout=30
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                # 包已安装，解析安装路径
+                install_path = None
+                for line in result.stdout.split("\n"):
+                    if line.startswith("Location:"):
+                        install_path = line.split(":", 1)[1].strip()
+                        break
+
+                # 对于 -e 安装的包，检查 Editable project location
+                editable_path = None
+                for line in result.stdout.split("\n"):
+                    if line.startswith("Editable project location:"):
+                        editable_path = line.split(":", 1)[1].strip()
+                        break
+
+                if editable_path:
+                    # 是 -e 安装的包
+                    # 检查是否是当前工程
+                    normalized_editable = os.path.normpath(editable_path)
+                    normalized_project = os.path.normpath(project_source_dir)
+
+                    if normalized_editable == normalized_project:
+                        # 已安装且是当前工程
+                        self.source_status_label.setText(f"✓ {i18n.t('source.installed')}: {editable_path}")
+                        self.source_status_label.setStyleSheet("color: #4CAF50; font-size: 11px;")
+                    else:
+                        # 已安装但不是当前工程
+                        self.source_status_label.setText(f"⚠ {i18n.t('source.installed_other')}: {editable_path}")
+                        self.source_status_label.setStyleSheet("color: #FF9800; font-size: 11px;")
+                elif install_path:
+                    # 非 -e 安装
+                    self.source_status_label.setText(f"⚠ {i18n.t('source.installed_non_editable')}: {install_path}")
+                    self.source_status_label.setStyleSheet("color: #FF9800; font-size: 11px;")
+                else:
+                    self.source_status_label.setText(f"✓ {i18n.t('source.installed')}")
+                    self.source_status_label.setStyleSheet("color: #4CAF50; font-size: 11px;")
+
+                self.install_source_btn.setText(i18n.t("btn.uninstall_source"))
+                self.install_source_btn.setEnabled(True)
+            else:
+                # 包未安装
+                self.source_status_label.setText(i18n.t("source.not_installed"))
+                self.source_status_label.setStyleSheet("color: #f44336; font-size: 11px;")
+                self.install_source_btn.setText(i18n.t("btn.install_source"))
+                self.install_source_btn.setEnabled(True)
+
+        except Exception as e:
+            self._clear_source_status()
+            self.source_status_label.setText(f"Error: {str(e)[:30]}")
 
     def _toggle_source_install(self):
         """安装或卸载源码"""
-        workspace_path = self.workspace_edit.text()
+        workspace_path = self.workspace_combo.currentText()
 
         # 获取项目名（workspace 目录名）
         project_name = os.path.basename(workspace_path.rstrip("/"))

@@ -18,6 +18,7 @@ class AppConfig:
     python_path: str = ""
     default_params: Dict[str, Any] = None
     recent_workspaces: List[str] = None
+    workspace_history: List[str] = None  # Workspace 历史记录（最多20条）
     tmux_session_prefix: str = "isaaclab"
     last_workspace: str = ""
     # 当前会话配置
@@ -66,6 +67,7 @@ class AppConfig:
             python_path=data.get("python_path", ""),
             default_params=data.get("default_params"),
             recent_workspaces=data.get("recent_workspaces", []),
+            workspace_history=data.get("workspace_history", []),
             tmux_session_prefix=data.get("tmux_session_prefix", "isaaclab"),
             last_workspace=data.get("last_workspace", ""),
             last_task=data.get("last_task", ""),

@@ -79,6 +79,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "source.uninstall_success": "源码卸载成功",
         "source.install_failed": "源码安装失败: {}",
         "source.uninstall_failed": "源码卸载失败: {}",
+        "source.installed_other": "已安装其他版本",
+        "source.installed_non_editable": "已安装（非开发模式）",
 
         # Main Window - Combobox items
         "combo.disabled": "禁用",
@@ -278,6 +280,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "source.uninstall_success": "Source uninstalled successfully",
         "source.install_failed": "Source installation failed: {}",
         "source.uninstall_failed": "Source uninstallation failed: {}",
+        "source.installed_other": "Installed other version",
+        "source.installed_non_editable": "Installed (non-editable)",
 
         # Main Window - Combobox items
         "combo.disabled": "Disabled",
