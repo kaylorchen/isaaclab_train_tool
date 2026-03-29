@@ -1323,7 +1323,6 @@ class MainWindow(QMainWindow):
     def _on_workspace_changed(self, path: str):
         """workspace路径变化"""
         if path and os.path.isdir(path):
-            self._check_source_install()
             self._scan_workspace()
         else:
             self._clear_workspace_info()
@@ -1377,6 +1376,9 @@ class MainWindow(QMainWindow):
             # 启用运行记录刷新按钮
             self.train_refresh_runs_btn.setEnabled(True)
             self.play_refresh_runs_btn.setEnabled(True)
+
+            # 检测源码安装状态
+            self._check_source_install()
 
             # 保存到最近使用的workspace
             self.config_manager.add_recent_workspace(path)
