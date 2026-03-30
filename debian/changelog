@@ -1,3 +1,9 @@
+isaaclab-train-tool (1.1.2) unstable; urgency=medium
+
+  * Add About dialog with author info and GitHub link
+
+ -- Kaylor <kaylor@kaylordut.com>  Sun, 30 Mar 2026 16:00:00 +0800
+
 isaaclab-train-tool (1.1.1) unstable; urgency=medium
 
   * Fix window icon not showing in taskbar

@@ -12,10 +12,10 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QGroupBox,
     QSpinBox, QCheckBox, QMessageBox, QFileDialog, QListWidget,
     QListWidgetItem, QSplitter, QTextEdit, QStatusBar, QMenu, QAction,
-    QMenuBar, QStackedWidget, QApplication
+    QMenuBar, QStackedWidget, QApplication, QDialog, QDialogButtonBox
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon, QPixmap, QCursor
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QUrl
+from PyQt5.QtGui import QFont, QTextCursor, QTextCharFormat, QColor, QIcon, QPixmap, QCursor, QDesktopServices
 
 from models import Mode, WorkspaceInfo, ScriptInfo, TaskInfo, SessionInfo
 from config import ConfigManager
@@ -2466,10 +2466,66 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         """显示关于对话框"""
-        QMessageBox.about(
-            self, i18n.t("menu.about"),
-            i18n.t("msg.about")
-        )
+        dialog = QDialog(self)
+        dialog.setWindowTitle(i18n.t("menu.about"))
+        dialog.setFixedSize(400, 280)
+
+        layout = QVBoxLayout(dialog)
+
+        # 应用图标
+        icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+        if os.path.exists(icon_path):
+            icon_label = QLabel()
+            icon_label.setPixmap(QPixmap(icon_path).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            icon_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(icon_label)
+
+        # 标题
+        title_label = QLabel("Isaac Lab Train Tool")
+        title_label.setFont(QFont("Arial", 16, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+
+        # 版本
+        version_label = QLabel(f"Version: 1.1.2")
+        version_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(version_label)
+
+        layout.addSpacing(10)
+
+        # 描述
+        desc_label = QLabel(i18n.t("msg.about_desc"))
+        desc_label.setAlignment(Qt.AlignCenter)
+        desc_label.setWordWrap(True)
+        layout.addWidget(desc_label)
+
+        layout.addSpacing(10)
+
+        # 作者信息
+        author_label = QLabel(f"{i18n.t('msg.about_author')}: Kaylor")
+        author_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(author_label)
+
+        # 邮箱
+        email_label = QLabel(f"{i18n.t('msg.about_email')}: kaylor.chen@qq.com")
+        email_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(email_label)
+
+        # GitHub 链接
+        github_link = QLabel()
+        github_link.setText(f'<a href="https://github.com/kaylorchen/isaaclab_train_tool">GitHub: kaylorchen/isaaclab_train_tool</a>')
+        github_link.setAlignment(Qt.AlignCenter)
+        github_link.setOpenExternalLinks(True)
+        layout.addWidget(github_link)
+
+        layout.addSpacing(10)
+
+        # 按钮
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+        button_box.accepted.connect(dialog.accept)
+        layout.addWidget(button_box)
+
+        dialog.exec_()
 
     def closeEvent(self, event):
         """窗口关闭事件"""
