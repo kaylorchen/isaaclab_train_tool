@@ -83,12 +83,17 @@ def sort_runs_by_number(runs: list) -> list:
     """按最新 checkpoint 数字降序排序 run
 
     Args:
-        runs: run 信息列表，每个元素包含 'latest_model' 字段
+        runs: run 信息列表，每个元素包含 'latest_model' 和 'algorithm' 字段
 
     Returns:
         list: 排序后的 run 列表
     """
-    return sorted(runs, key=lambda r: extract_number_from_filename(r.get('latest_model', '')), reverse=True)
+    def get_run_number(r):
+        latest_model = r.get('latest_model', '')
+        algorithm = r.get('algorithm', 'rsl_rl')
+        return extract_checkpoint_number(latest_model, algorithm)
+
+    return sorted(runs, key=get_run_number, reverse=True)
 
 
 # 不同算法的 checkpoint 搜索配置
@@ -97,27 +102,68 @@ CHECKPOINT_PATTERNS = {
         "log_dir": "rsl_rl",
         "extensions": [".pt"],
         "prefix": "model_",
-        "subdir": None  # 直接在 run 目录
+        "subdir": None,  # 直接在 run 目录
+        "number_pattern": r"model_(\d+)\.pt"  # model_100.pt
     },
     "sb3": {
         "log_dir": "sb3",
         "extensions": [".zip"],
         "prefix": "model_",
-        "subdir": None
+        "subdir": None,
+        "number_pattern": r"model_(\d+)_steps\.zip"  # model_1000_steps.zip
     },
     "skrl": {
         "log_dir": "skrl",
         "extensions": [".pt"],
         "prefix": "agent_",
-        "subdir": "checkpoints"
+        "subdir": "checkpoints",
+        "number_pattern": r"agent_(\d+)\.pt"  # agent_100.pt
     },
     "rl_games": {
         "log_dir": "rl_games",
         "extensions": [".pth"],
         "prefix": "",
-        "subdir": "nn"
+        "subdir": "nn",
+        "number_pattern": r"ep_(\d+)"  # last_xxx_ep_100_rew_xxx.pth
     }
 }
+
+
+def extract_checkpoint_number(filename: str, algorithm: str) -> int:
+    """根据算法类型从 checkpoint 文件名中提取数字
+
+    Args:
+        filename: 文件名
+        algorithm: 算法类型
+
+    Returns:
+        int: 提取的数字，如果没有匹配则返回 0
+    """
+    pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+    number_pattern = pattern.get("number_pattern", r"(\d+)")
+
+    match = re.search(number_pattern, filename)
+    if match:
+        return int(match.group(1))
+
+    # 如果特定模式没匹配，尝试通用数字提取
+    numbers = re.findall(r'\d+', filename)
+    if numbers:
+        return int(numbers[-1])
+    return 0
+
+
+def sort_checkpoints_by_number(checkpoints: list, algorithm: str) -> list:
+    """按 checkpoint 数字降序排序
+
+    Args:
+        checkpoints: checkpoint 文件名列表
+        algorithm: 算法类型
+
+    Returns:
+        list: 排序后的文件名列表
+    """
+    return sorted(checkpoints, key=lambda f: extract_checkpoint_number(f, algorithm), reverse=True)
 
 
 def detect_terminal() -> str:
@@ -1713,6 +1759,10 @@ class MainWindow(QMainWindow):
         if not script_dir or not self.current_workspace:
             return
 
+        # 刷新运行记录（因为不同算法有不同的日志目录）
+        self._refresh_train_runs()
+        self._refresh_play_runs()
+
         self._update_run_button()
         self._update_cmd_preview()
 
@@ -1754,15 +1804,12 @@ class MainWindow(QMainWindow):
         for f in os.listdir(search_dir):
             for ext in pattern["extensions"]:
                 if f.endswith(ext):
-                    # 对于 rl_games，排除一些临时文件
-                    if algorithm == "rl_games" and not f.endswith(".pth"):
-                        continue
                     checkpoints.append(f)
                     break
 
-        # 按数字排序（降序）
+        # 按数字排序（降序）- 使用算法特定的排序
         if checkpoints:
-            checkpoints = sort_pt_files_by_number(checkpoints)
+            checkpoints = sort_checkpoints_by_number(checkpoints, algorithm)
 
         return checkpoints
 
