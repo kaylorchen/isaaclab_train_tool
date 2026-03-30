@@ -1,3 +1,10 @@
+isaaclab-train-tool (1.1.1) unstable; urgency=medium
+
+  * Fix window icon not showing in taskbar
+  * Rename icon.jpeg to icon.png for correct format
+
+ -- Kaylor <kaylor@kaylordut.com>  Sun, 30 Mar 2026 15:00:00 +0800
+
 isaaclab-train-tool (1.1.0) unstable; urgency=medium
 
   * Add multi-algorithm support for checkpoint loading
