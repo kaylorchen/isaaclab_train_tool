@@ -2289,18 +2289,29 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """窗口关闭事件"""
         if self.current_session:
-            reply = QMessageBox.question(
-                self, i18n.t("msg.confirm"),
-                i18n.t("msg.closing"),
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.No:
+            # 创建自定义对话框
+            msg_box = QMessageBox(self)
+            msg_box.setWindowTitle(i18n.t("msg.confirm"))
+            msg_box.setText(i18n.t("msg.closing_session"))
+            msg_box.setIcon(QMessageBox.Question)
+
+            # 添加三个按钮
+            btn_close_session = msg_box.addButton(i18n.t("btn.close_session"), QMessageBox.AcceptRole)
+            btn_keep_running = msg_box.addButton(i18n.t("btn.keep_running"), QMessageBox.AcceptRole)
+            btn_cancel = msg_box.addButton(i18n.t("btn.cancel"), QMessageBox.RejectRole)
+
+            msg_box.exec_()
+
+            clicked_button = msg_box.clickedButton()
+
+            if clicked_button == btn_cancel:
                 event.ignore()
                 return
-
-            # 关闭当前的 session
-            if self.tmux_manager.session_exists(self.current_session.session_name):
-                self.tmux_manager.kill_session(self.current_session.session_name)
+            elif clicked_button == btn_close_session:
+                # 关闭当前的 session
+                if self.tmux_manager.session_exists(self.current_session.session_name):
+                    self.tmux_manager.kill_session(self.current_session.session_name)
+            # btn_keep_running: 不关闭 session，让它在后台运行
 
         # 保存当前首页参数到配置
         config = self.config_manager.config

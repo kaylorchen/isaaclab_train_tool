@@ -124,6 +124,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "msg.stop_training": "确定要停止当前训练吗？\n这会终止tmux会话。",
         "msg.attach_terminal": "将在 {} 中附加到会话: {}\n\n按 Ctrl+B 然后按 D 可以分离会话",
         "msg.closing": "有正在运行的训练会话。\n关闭窗口不会停止训练，会话将继续在后台运行。\n\n确定要关闭吗？",
+        "msg.closing_session": "有正在运行的训练会话。\n请选择关闭方式：",
         "msg.about": "Isaac Lab Train Tool\n\n用于管理Isaac Lab项目训练和播放的图形界面工具\n\n版本: 1.0.0",
         "msg.create_session_failed": "无法创建tmux会话",
         "msg.start_failed": "启动失败: {}",
@@ -158,6 +159,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.isaaclab_path_hint": "Isaac Lab根目录通常包含 isaaclab.sh 和 source 目录",
 
         # Buttons
+        "btn.close_session": "关闭会话并退出",
+        "btn.keep_running": "保持运行并退出",
+        "btn.cancel": "取消",
         "btn.manual_config": "手动配置",
         "btn.change_path": "更改路径",
         "btn.auto_detect": "自动检测",
@@ -345,6 +349,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "msg.stop_training": "Stop current training?\nThis will terminate the tmux session.",
         "msg.attach_terminal": "Will attach to session in {}: {}\n\nPress Ctrl+B then D to detach from session",
         "msg.closing": "A training session is running.\nClosing the window will not stop the training, the session will continue in the background.\n\nAre you sure you want to close?",
+        "msg.closing_session": "A training session is running.\nPlease select how to close:",
         "msg.about": "Isaac Lab Train Tool\n\nA GUI tool for managing Isaac Lab training and play sessions\n\nVersion: 1.0.0",
         "msg.create_session_failed": "Failed to create tmux session",
         "msg.start_failed": "Failed to start: {}",
@@ -379,6 +384,9 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "config.isaaclab_path_hint": "Isaac Lab root directory usually contains isaaclab.sh and source folder",
 
         # Buttons
+        "btn.close_session": "Close Session & Exit",
+        "btn.keep_running": "Keep Running & Exit",
+        "btn.cancel": "Cancel",
         "btn.manual_config": "Manual Config",
         "btn.change_path": "Change Path",
         "btn.auto_detect": "Auto Detect",
