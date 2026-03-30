@@ -1,6 +1,1 @@
-# Python dependencies for Isaac Lab Train Tool
-# Note: python3-pyqt5 is installed via apt as a system dependency
-# This file is for additional pip packages if needed
-
-# If you encounter issues with system PyQt5, uncomment below:
-# PyQt5>=5.15.0
+PyQt5>=5.15.0

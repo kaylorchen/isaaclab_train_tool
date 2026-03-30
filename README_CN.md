@@ -1,5 +1,7 @@
 # Isaac Lab 训练工具
 
+[English](README.md)
+
 一个基于 PyQt5 的 GUI 工具，用于管理 Isaac Lab 的训练和测试会话。
 
 ## 功能特性
@@ -19,6 +21,7 @@
   - 断点续训功能
   - 直播流和相机选项
   - 根据任务名自动识别模式
+  - **多算法支持**：rsl_rl、sb3、skrl、rl_games
 
 - **会话管理**
   - tmux 会话管理训练进程
@@ -42,7 +45,27 @@
 
 ## 安装
 
-### 1. 安装系统依赖
+### 方式一：通过 Debian 包安装（推荐用于 Debian/Ubuntu）
+
+下载最新的 `.deb` 包并安装：
+
+```bash
+sudo apt install ./isaaclab-train-tool_1.1.0_all.deb
+```
+
+安装包会自动：
+- 安装系统依赖（python3、tmux、python3-pip）
+- 通过 pip 安装 PyQt5
+- 添加桌面快捷方式到应用菜单
+
+安装完成后，可以从应用菜单启动或运行：
+```bash
+isaaclab-train-tool
+```
+
+### 方式二：从源码安装
+
+#### 1. 安装系统依赖
 
 ```bash
 # Ubuntu/Debian
@@ -61,7 +84,7 @@ sudo pacman -S python python-pip tmux
 sudo pacman -S xcb-util-cursor libxkbcommon
 ```
 
-### 2. 克隆或下载
+#### 2. 克隆或下载
 
 ```bash
 cd ~/work/nvidia
@@ -69,14 +92,14 @@ git clone <repository_url> isaaclab_train_tool
 cd isaaclab_train_tool
 ```
 
-### 3. 创建虚拟环境（推荐）
+#### 3. 创建虚拟环境（推荐）
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 4. 安装 Python 依赖
+#### 4. 安装 Python 依赖
 
 ```bash
 pip3 install -r requirements.txt
@@ -99,6 +122,12 @@ pip3 install PyQt5-Qt5 PyQt5-sip
 
 ### 启动应用
 
+**从 Debian 包安装：**
+```bash
+isaaclab-train-tool
+```
+
+**从源码运行：**
 ```bash
 python3 main.py
 ```
@@ -140,6 +169,21 @@ python3 main.py
 
 日志每3秒自动追加保存到配置的日志目录。即使应用程序崩溃，日志也不会丢失。
 
+### 多算法支持
+
+工具会根据脚本目录自动检测强化学习算法，并使用正确的：
+- 日志目录结构
+- 检查点文件格式
+- 恢复训练命令参数
+
+支持的算法：
+| 算法 | 日志目录 | 检查点格式 |
+|------|---------|-----------|
+| rsl_rl | logs/rsl_rl/ | model_*.pt |
+| sb3 | logs/sb3/ | model_*_steps.zip |
+| skrl | logs/skrl/ | agent_*.pt |
+| rl_games | logs/rl_games/ | *.pth |
+
 ## 配置
 
 配置保存在 `~/.config/isaaclab_train_tool/config.json`：
@@ -172,6 +216,7 @@ isaaclab_train_tool/
 ├── tmux_manager.py      # tmux 会话管理
 ├── i18n.py              # 国际化
 ├── requirements.txt     # Python 依赖
+├── debian/              # Debian 打包文件
 ├── README.md            # 英文文档
 └── README_CN.md         # 中文文档
 ```
@@ -198,7 +243,18 @@ isaaclab_train_tool/
 
 对于新会话，tmux history-limit 设置为 50000 行。v1.0.1 之前创建的旧会话可能仍使用默认的 2000 限制。创建新会话以使用增加的限制。
 
+### 不同算法的检查点没有显示
+
+工具根据脚本目录名称搜索检查点（如 `scripts/rsl_rl/` → rsl_rl 算法）。请确保您的脚本目录与使用的算法匹配。
+
 ## 更新日志
+
+### v1.1.0
+- 添加多算法支持（rsl_rl、sb3、skrl、rl_games）
+- 修复不同算法的检查点排序问题
+- 切换脚本目录时刷新运行记录
+- 添加关闭会话选项对话框
+- 添加 Debian 包分发支持
 
 ### v1.0.1
 - 添加工作空间历史下拉框（最多20条）

@@ -21,6 +21,7 @@ A PyQt5-based GUI tool for managing Isaac Lab training and play sessions.
   - Resume training with checkpoint selection
   - Live stream and camera options
   - Automatic mode detection from task name
+  - **Multi-algorithm support**: rsl_rl, sb3, skrl, rl_games
 
 - **Session Management**
   - tmux session management for training processes
@@ -44,7 +45,27 @@ A PyQt5-based GUI tool for managing Isaac Lab training and play sessions.
 
 ## Installation
 
-### 1. Install System Dependencies
+### Option 1: Install from Debian Package (Recommended for Debian/Ubuntu)
+
+Download the latest `.deb` package and install:
+
+```bash
+sudo apt install ./isaaclab-train-tool_1.1.0_all.deb
+```
+
+The package will automatically:
+- Install system dependencies (python3, tmux, python3-pip)
+- Install PyQt5 via pip
+- Add desktop entry to application menu
+
+After installation, you can launch from application menu or run:
+```bash
+isaaclab-train-tool
+```
+
+### Option 2: Install from Source
+
+#### 1. Install System Dependencies
 
 ```bash
 # Ubuntu/Debian
@@ -63,7 +84,7 @@ sudo pacman -S python python-pip tmux
 sudo pacman -S xcb-util-cursor libxkbcommon
 ```
 
-### 2. Clone or Download
+#### 2. Clone or Download
 
 ```bash
 cd ~/work/nvidia
@@ -71,14 +92,14 @@ git clone <repository_url> isaaclab_train_tool
 cd isaaclab_train_tool
 ```
 
-### 3. Create Virtual Environment (Optional but Recommended)
+#### 3. Create Virtual Environment (Optional but Recommended)
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 4. Install Python Dependencies
+#### 4. Install Python Dependencies
 
 ```bash
 pip3 install -r requirements.txt
@@ -101,6 +122,12 @@ pip3 install PyQt5-Qt5 PyQt5-sip
 
 ### Running the Application
 
+**From Debian package:**
+```bash
+isaaclab-train-tool
+```
+
+**From source:**
 ```bash
 python3 main.py
 ```
@@ -142,6 +169,21 @@ Use "Edit > Language" menu to switch between Chinese and English.
 
 Logs are automatically saved every 3 seconds to the configured log directory (append mode). This prevents log loss even if the application crashes.
 
+### Multi-Algorithm Support
+
+The tool automatically detects the RL algorithm from the script directory and uses the correct:
+- Log directory structure
+- Checkpoint file format
+- Resume command parameters
+
+Supported algorithms:
+| Algorithm | Log Directory | Checkpoint Format |
+|-----------|--------------|-------------------|
+| rsl_rl | logs/rsl_rl/ | model_*.pt |
+| sb3 | logs/sb3/ | model_*_steps.zip |
+| skrl | logs/skrl/ | agent_*.pt |
+| rl_games | logs/rl_games/ | *.pth |
+
 ## Configuration
 
 Configuration is stored in `~/.config/isaaclab_train_tool/config.json`:
@@ -174,6 +216,7 @@ isaaclab_train_tool/
 ├── tmux_manager.py      # tmux session management
 ├── i18n.py              # Internationalization
 ├── requirements.txt     # Python dependencies
+├── debian/              # Debian packaging files
 ├── README.md            # English documentation
 └── README_CN.md         # Chinese documentation
 ```
@@ -200,7 +243,18 @@ The tool auto-detects your terminal emulator. If it doesn't work:
 
 For new sessions, the tmux history-limit is set to 50000 lines. Old sessions created before v1.0.1 may still have the default 2000 limit. Create a new session to use the increased limit.
 
+### Checkpoint not showing for different algorithm
+
+The tool searches checkpoints based on the script directory name (e.g., `scripts/rsl_rl/` → rsl_rl algorithm). Make sure your script directory matches the algorithm you're using.
+
 ## Changelog
+
+### v1.1.0
+- Add multi-algorithm support (rsl_rl, sb3, skrl, rl_games)
+- Fix checkpoint sorting for different algorithms
+- Refresh runs when script directory changes
+- Add close session options dialog
+- Add Debian package distribution support
 
 ### v1.0.1
 - Add workspace history dropdown (up to 20 entries)

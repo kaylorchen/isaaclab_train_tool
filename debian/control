@@ -2,14 +2,14 @@ Source: isaaclab-train-tool
 Section: devel
 Priority: optional
 Maintainer: Kaylor <kaylor@kaylordut.com>
-Build-Depends: debhelper (>= 12), python3, python3-pyqt5
+Build-Depends: debhelper (>= 12), python3, python3-pip
 Standards-Version: 4.5.1
 Homepage: https://github.com/isaac-sim/IsaacLab
 X-Python3-Version: >= 3.8
 
 Package: isaaclab-train-tool
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3, python3-pyqt5, tmux, python3-packaging
+Depends: ${python3:Depends}, ${misc:Depends}, python3, tmux, python3-pip
 Recommends: python3-venv
 Suggests: conda
 Description: GUI tool for managing Isaac Lab training sessions

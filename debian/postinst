@@ -16,4 +16,11 @@ fi
 # Make launch script executable
 chmod +x /opt/isaaclab-train-tool/launch.sh 2>/dev/null || true
 
+# Install Python dependencies via pip
+if [ -x /usr/bin/pip3 ]; then
+    echo "Installing Python dependencies for Isaac Lab Train Tool..."
+    pip3 install -r /opt/isaaclab-train-tool/requirements.txt --break-system-packages 2>/dev/null || \
+    pip3 install -r /opt/isaaclab-train-tool/requirements.txt --user 2>/dev/null || true
+fi
+
 exit 0
