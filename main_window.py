@@ -91,6 +91,35 @@ def sort_runs_by_number(runs: list) -> list:
     return sorted(runs, key=lambda r: extract_number_from_filename(r.get('latest_model', '')), reverse=True)
 
 
+# 不同算法的 checkpoint 搜索配置
+CHECKPOINT_PATTERNS = {
+    "rsl_rl": {
+        "log_dir": "rsl_rl",
+        "extensions": [".pt"],
+        "prefix": "model_",
+        "subdir": None  # 直接在 run 目录
+    },
+    "sb3": {
+        "log_dir": "sb3",
+        "extensions": [".zip"],
+        "prefix": "model_",
+        "subdir": None
+    },
+    "skrl": {
+        "log_dir": "skrl",
+        "extensions": [".pt"],
+        "prefix": "agent_",
+        "subdir": "checkpoints"
+    },
+    "rl_games": {
+        "log_dir": "rl_games",
+        "extensions": [".pth"],
+        "prefix": "",
+        "subdir": "nn"
+    }
+}
+
+
 def detect_terminal() -> str:
     """检测用户默认终端
 
@@ -990,21 +1019,23 @@ class MainWindow(QMainWindow):
         self.train_load_run_combo.clear()
         self.train_checkpoint_combo.clear()
 
-        # 搜索 logs 目录
+        # 获取算法类型
+        algorithm = self._get_algorithm_type()
+        pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+
+        # 搜索 logs/<algorithm> 目录
         logs_dir = os.path.join(self.current_workspace.path, "logs")
         if not os.path.isdir(logs_dir):
             self.train_load_run_combo.addItem(i18n.t("combo.no_logs"), None)
             return
 
-        # 遍历 logs/<logger>/<task_name>/ 目录
+        # 只搜索对应算法的日志目录
+        algo_log_dir = os.path.join(logs_dir, pattern["log_dir"])
         runs = []
-        for logger_name in os.listdir(logs_dir):
-            logger_path = os.path.join(logs_dir, logger_name)
-            if not os.path.isdir(logger_path):
-                continue
 
-            for task_dir in os.listdir(logger_path):
-                task_path = os.path.join(logger_path, task_dir)
+        if os.path.isdir(algo_log_dir):
+            for task_dir in os.listdir(algo_log_dir):
+                task_path = os.path.join(algo_log_dir, task_dir)
                 if not os.path.isdir(task_path):
                     continue
 
@@ -1020,16 +1051,16 @@ class MainWindow(QMainWindow):
                     for run_name in os.listdir(task_path):
                         run_path = os.path.join(task_path, run_name)
                         if os.path.isdir(run_path):
-                            # 查找最新的checkpoint
+                            # 根据算法类型查找 checkpoint
                             try:
-                                pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
+                                latest_model = self._get_latest_checkpoint(run_path, algorithm)
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
-                                    'logger': logger_name,
+                                    'logger': pattern["log_dir"],
                                     'task': task_dir,
                                     'latest_model': latest_model,
+                                    'algorithm': algorithm,
                                     'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                                 })
                             except OSError:
@@ -1062,14 +1093,17 @@ class MainWindow(QMainWindow):
         if not os.path.isdir(logs_dir):
             return []
 
-        runs = []
-        for logger_name in os.listdir(logs_dir):
-            logger_path = os.path.join(logs_dir, logger_name)
-            if not os.path.isdir(logger_path):
-                continue
+        # 获取算法类型
+        algorithm = self._get_algorithm_type()
+        pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
 
-            for task_dir in os.listdir(logger_path):
-                task_path = os.path.join(logger_path, task_dir)
+        runs = []
+        # 只搜索对应算法的日志目录
+        algo_log_dir = os.path.join(logs_dir, pattern["log_dir"])
+
+        if os.path.isdir(algo_log_dir):
+            for task_dir in os.listdir(algo_log_dir):
+                task_path = os.path.join(algo_log_dir, task_dir)
                 if not os.path.isdir(task_path):
                     continue
 
@@ -1077,14 +1111,14 @@ class MainWindow(QMainWindow):
                     run_path = os.path.join(task_path, run_name)
                     if os.path.isdir(run_path):
                         try:
-                            pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                            latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
+                            latest_model = self._get_latest_checkpoint(run_path, algorithm)
                             runs.append({
                                 'name': run_name,
                                 'path': run_path,
-                                'logger': logger_name,
+                                'logger': pattern["log_dir"],
                                 'task': task_dir,
                                 'latest_model': latest_model,
+                                'algorithm': algorithm,
                                 'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                             })
                         except OSError:
@@ -1101,11 +1135,13 @@ class MainWindow(QMainWindow):
             self.train_checkpoint_combo.addItem(i18n.t("label.none"), None)
             return
 
-        pt_files = [f for f in os.listdir(run_path) if f.endswith('.pt')]
-        pt_files = sort_pt_files_by_number(pt_files)
-        if pt_files:
-            for pt_file in pt_files:
-                self.train_checkpoint_combo.addItem(pt_file, pt_file)
+        # 根据算法类型查找 checkpoint
+        algorithm = self._get_algorithm_type()
+        checkpoints = self._find_checkpoints(run_path, algorithm)
+
+        if checkpoints:
+            for ckpt in checkpoints:
+                self.train_checkpoint_combo.addItem(ckpt, ckpt)
         else:
             self.train_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
@@ -1121,21 +1157,23 @@ class MainWindow(QMainWindow):
         self.play_load_run_combo.clear()
         self.play_checkpoint_combo.clear()
 
-        # 搜索 logs 目录
+        # 获取算法类型
+        algorithm = self._get_algorithm_type()
+        pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+
+        # 搜索 logs/<algorithm> 目录
         logs_dir = os.path.join(self.current_workspace.path, "logs")
         if not os.path.isdir(logs_dir):
             self.play_load_run_combo.addItem(i18n.t("combo.no_logs"), None)
             return
 
-        # 遍历 logs/<logger>/<task_name>/ 目录
+        # 只搜索对应算法的日志目录
+        algo_log_dir = os.path.join(logs_dir, pattern["log_dir"])
         runs = []
-        for logger_name in os.listdir(logs_dir):
-            logger_path = os.path.join(logs_dir, logger_name)
-            if not os.path.isdir(logger_path):
-                continue
 
-            for task_dir in os.listdir(logger_path):
-                task_path = os.path.join(logger_path, task_dir)
+        if os.path.isdir(algo_log_dir):
+            for task_dir in os.listdir(algo_log_dir):
+                task_path = os.path.join(algo_log_dir, task_dir)
                 if not os.path.isdir(task_path):
                     continue
 
@@ -1150,14 +1188,14 @@ class MainWindow(QMainWindow):
                         run_path = os.path.join(task_path, run_name)
                         if os.path.isdir(run_path):
                             try:
-                                pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
+                                latest_model = self._get_latest_checkpoint(run_path, algorithm)
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
-                                    'logger': logger_name,
+                                    'logger': pattern["log_dir"],
                                     'task': task_dir,
                                     'latest_model': latest_model,
+                                    'algorithm': algorithm,
                                     'display': f"[{task_dir}] {run_name} ({i18n.t('msg.latest_model', latest_model)})"
                                 })
                             except OSError:
@@ -1186,11 +1224,13 @@ class MainWindow(QMainWindow):
             self.play_checkpoint_combo.addItem(i18n.t("label.none"), None)
             return
 
-        pt_files = [f for f in os.listdir(run_path) if f.endswith('.pt')]
-        pt_files = sort_pt_files_by_number(pt_files)
-        if pt_files:
-            for pt_file in pt_files:
-                self.play_checkpoint_combo.addItem(pt_file, pt_file)
+        # 根据算法类型查找 checkpoint
+        algorithm = self._get_algorithm_type()
+        checkpoints = self._find_checkpoints(run_path, algorithm)
+
+        if checkpoints:
+            for ckpt in checkpoints:
+                self.play_checkpoint_combo.addItem(ckpt, ckpt)
         else:
             self.play_checkpoint_combo.addItem(i18n.t("combo.no_checkpoint"), None)
 
@@ -1676,6 +1716,69 @@ class MainWindow(QMainWindow):
         self._update_run_button()
         self._update_cmd_preview()
 
+    def _get_algorithm_type(self) -> str:
+        """根据脚本目录判断算法类型
+
+        Returns:
+            str: 算法类型 (rsl_rl, sb3, skrl, rl_games)
+        """
+        script_dir = self.script_dir_combo.currentText()
+        for algo in CHECKPOINT_PATTERNS.keys():
+            if algo in script_dir:
+                return algo
+        return "rsl_rl"  # 默认
+
+    def _find_checkpoints(self, run_path: str, algorithm: str) -> list:
+        """根据算法类型查找 checkpoint 文件
+
+        Args:
+            run_path: run 目录路径
+            algorithm: 算法类型
+
+        Returns:
+            list: checkpoint 文件列表（按数字降序）
+        """
+        pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+
+        # 确定搜索目录
+        if pattern["subdir"]:
+            search_dir = os.path.join(run_path, pattern["subdir"])
+        else:
+            search_dir = run_path
+
+        if not os.path.isdir(search_dir):
+            return []
+
+        # 查找所有匹配的 checkpoint 文件
+        checkpoints = []
+        for f in os.listdir(search_dir):
+            for ext in pattern["extensions"]:
+                if f.endswith(ext):
+                    # 对于 rl_games，排除一些临时文件
+                    if algorithm == "rl_games" and not f.endswith(".pth"):
+                        continue
+                    checkpoints.append(f)
+                    break
+
+        # 按数字排序（降序）
+        if checkpoints:
+            checkpoints = sort_pt_files_by_number(checkpoints)
+
+        return checkpoints
+
+    def _get_latest_checkpoint(self, run_path: str, algorithm: str) -> str:
+        """获取最新的 checkpoint 文件名
+
+        Args:
+            run_path: run 目录路径
+            algorithm: 算法类型
+
+        Returns:
+            str: 最新 checkpoint 文件名，如果没有则返回 "无"
+        """
+        checkpoints = self._find_checkpoints(run_path, algorithm)
+        return checkpoints[0] if checkpoints else i18n.t("msg.no_model")
+
     def _on_task_changed(self, index: int):
         """任务变化时，根据任务名判断类型"""
         task_id = self.task_combo.currentData()
@@ -1812,21 +1915,46 @@ class MainWindow(QMainWindow):
         if enable_cameras == 1:
             args.append("--enable_cameras 1")
 
-        # Train模式特定参数
-        if is_train and resume:
-            args.append("--resume")
-            # 只有勾选续训时才添加 load_run 和 checkpoint 参数
-            if load_run_data and isinstance(load_run_data, dict):
-                args.append(f"--load_run {load_run_data['name']}")
-            if checkpoint_path:
-                args.append(f"--checkpoint {checkpoint_path}")
+        # 获取算法类型
+        algorithm = self._get_algorithm_type()
 
-        # Play模式：load_run 和 checkpoint 参数（无需续训选项）
+        # Train模式特定参数 - 根据算法类型生成不同的恢复训练命令
+        if is_train and resume:
+            if algorithm == "rsl_rl":
+                # rsl_rl 使用 --resume --load_run --checkpoint 格式
+                args.append("--resume")
+                if load_run_data and isinstance(load_run_data, dict):
+                    args.append(f"--load_run {load_run_data['name']}")
+                if checkpoint_path:
+                    args.append(f"--checkpoint {checkpoint_path}")
+            else:
+                # 其他算法使用完整 checkpoint 路径
+                if load_run_data and isinstance(load_run_data, dict) and checkpoint_path:
+                    # 构建 checkpoint 的完整路径
+                    pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+                    if pattern["subdir"]:
+                        ckpt_full_path = os.path.join(load_run_data['path'], pattern["subdir"], checkpoint_path)
+                    else:
+                        ckpt_full_path = os.path.join(load_run_data['path'], checkpoint_path)
+                    args.append(f"--checkpoint {ckpt_full_path}")
+
+        # Play模式：根据算法类型加载 checkpoint
         if not is_train:
-            if load_run_data and isinstance(load_run_data, dict):
-                args.append(f"--load_run {load_run_data['name']}")
-            if checkpoint_path:
-                args.append(f"--checkpoint {checkpoint_path}")
+            if algorithm == "rsl_rl":
+                # rsl_rl 使用 --load_run --checkpoint 格式
+                if load_run_data and isinstance(load_run_data, dict):
+                    args.append(f"--load_run {load_run_data['name']}")
+                if checkpoint_path:
+                    args.append(f"--checkpoint {checkpoint_path}")
+            else:
+                # 其他算法使用完整 checkpoint 路径
+                if load_run_data and isinstance(load_run_data, dict) and checkpoint_path:
+                    pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
+                    if pattern["subdir"]:
+                        ckpt_full_path = os.path.join(load_run_data['path'], pattern["subdir"], checkpoint_path)
+                    else:
+                        ckpt_full_path = os.path.join(load_run_data['path'], checkpoint_path)
+                    args.append(f"--checkpoint {ckpt_full_path}")
 
         # 额外参数
         extra = self.extra_params_edit.text().strip()
