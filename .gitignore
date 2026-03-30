@@ -15,3 +15,4 @@ debian/*.substvars
 debian/isaaclab-train-tool/
 .pybuild/
 *.deb
+debian/debhelper-build-stamp
