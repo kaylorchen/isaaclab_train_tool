@@ -79,6 +79,18 @@ def sort_pt_files_by_number(files: list) -> list:
     return sorted(files, key=lambda f: extract_number_from_filename(f), reverse=True)
 
 
+def sort_runs_by_number(runs: list) -> list:
+    """按最新 checkpoint 数字降序排序 run
+
+    Args:
+        runs: run 信息列表，每个元素包含 'latest_model' 字段
+
+    Returns:
+        list: 排序后的 run 列表
+    """
+    return sorted(runs, key=lambda r: extract_number_from_filename(r.get('latest_model', '')), reverse=True)
+
+
 def detect_terminal() -> str:
     """检测用户默认终端
 
@@ -1010,8 +1022,8 @@ class MainWindow(QMainWindow):
                         if os.path.isdir(run_path):
                             # 查找最新的checkpoint
                             try:
-                                pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
+                                pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
+                                latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
@@ -1024,8 +1036,8 @@ class MainWindow(QMainWindow):
                                 pass
 
         if runs:
-            # 按时间倒序排列
-            runs.sort(key=lambda x: x['name'], reverse=True)
+            # 按最新 checkpoint 数字降序排列
+            runs = sort_runs_by_number(runs)
             for run in runs:
                 self.train_load_run_combo.addItem(run['display'], run)
 
@@ -1065,8 +1077,8 @@ class MainWindow(QMainWindow):
                     run_path = os.path.join(task_path, run_name)
                     if os.path.isdir(run_path):
                         try:
-                            pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                            latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
+                            pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
+                            latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
                             runs.append({
                                 'name': run_name,
                                 'path': run_path,
@@ -1078,7 +1090,7 @@ class MainWindow(QMainWindow):
                         except OSError:
                             pass
 
-        runs.sort(key=lambda x: x['name'], reverse=True)
+        runs = sort_runs_by_number(runs)
         return runs
 
     def _load_train_checkpoints(self, run_path: str):
@@ -1138,8 +1150,8 @@ class MainWindow(QMainWindow):
                         run_path = os.path.join(task_path, run_name)
                         if os.path.isdir(run_path):
                             try:
-                                pt_files = sorted([f for f in os.listdir(run_path) if f.endswith('.pt')])
-                                latest_model = pt_files[-1] if pt_files else i18n.t("msg.no_model")
+                                pt_files = sort_pt_files_by_number([f for f in os.listdir(run_path) if f.endswith('.pt')])
+                                latest_model = pt_files[0] if pt_files else i18n.t("msg.no_model")
                                 runs.append({
                                     'name': run_name,
                                     'path': run_path,
@@ -1152,7 +1164,7 @@ class MainWindow(QMainWindow):
                                 pass
 
         if runs:
-            runs.sort(key=lambda x: x['name'], reverse=True)
+            runs = sort_runs_by_number(runs)
             for run in runs:
                 self.play_load_run_combo.addItem(run['display'], run)
             self._load_play_checkpoints(runs[0]['path'])
