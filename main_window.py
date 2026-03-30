@@ -1674,6 +1674,7 @@ class MainWindow(QMainWindow):
             return
 
         self._update_run_button()
+        self._update_cmd_preview()
 
     def _on_task_changed(self, index: int):
         """任务变化时，根据任务名判断类型"""
@@ -1814,14 +1815,18 @@ class MainWindow(QMainWindow):
         # Train模式特定参数
         if is_train and resume:
             args.append("--resume")
+            # 只有勾选续训时才添加 load_run 和 checkpoint 参数
+            if load_run_data and isinstance(load_run_data, dict):
+                args.append(f"--load_run {load_run_data['name']}")
+            if checkpoint_path:
+                args.append(f"--checkpoint {checkpoint_path}")
 
-        # load_run参数
-        if load_run_data and isinstance(load_run_data, dict):
-            args.append(f"--load_run {load_run_data['name']}")
-
-        # checkpoint参数
-        if checkpoint_path:
-            args.append(f"--checkpoint {checkpoint_path}")
+        # Play模式：load_run 和 checkpoint 参数（无需续训选项）
+        if not is_train:
+            if load_run_data and isinstance(load_run_data, dict):
+                args.append(f"--load_run {load_run_data['name']}")
+            if checkpoint_path:
+                args.append(f"--checkpoint {checkpoint_path}")
 
         # 额外参数
         extra = self.extra_params_edit.text().strip()
@@ -1838,6 +1843,11 @@ class MainWindow(QMainWindow):
         """运行训练"""
         if not self.current_workspace:
             return
+
+        # 关闭上一个 session（如果存在）
+        if self.current_session and self.tmux_manager.session_exists(self.current_session.session_name):
+            self.tmux_manager.kill_session(self.current_session.session_name)
+            self.current_session = None
 
         # 检查环境配置
         activation_cmd = self.config_manager.get_activation_command()
@@ -2287,6 +2297,10 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.No:
                 event.ignore()
                 return
+
+            # 关闭当前的 session
+            if self.tmux_manager.session_exists(self.current_session.session_name):
+                self.tmux_manager.kill_session(self.current_session.session_name)
 
         # 保存当前首页参数到配置
         config = self.config_manager.config
