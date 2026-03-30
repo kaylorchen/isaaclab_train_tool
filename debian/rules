@@ -15,14 +15,14 @@ override_dh_auto_install:
 	# Install desktop file
 	install -D -m 644 debian/isaaclab-train-tool.desktop debian/isaaclab-train-tool/usr/share/applications/isaaclab-train-tool.desktop
 	# Install icon
-	install -D -m 644 icon.jpeg debian/isaaclab-train-tool/usr/share/icons/hicolor/256x256/apps/isaaclab-train-tool.jpeg
+	install -D -m 644 icon.png debian/isaaclab-train-tool/usr/share/icons/hicolor/256x256/apps/isaaclab-train-tool.png
 	# Install to /opt
 	mkdir -p debian/isaaclab-train-tool/opt/isaaclab-train-tool
 	cp -r *.py debian/isaaclab-train-tool/opt/isaaclab-train-tool/
 	cp -r requirements.txt debian/isaaclab-train-tool/opt/isaaclab-train-tool/
 	cp launch.sh debian/isaaclab-train-tool/opt/isaaclab-train-tool/
 	chmod +x debian/isaaclab-train-tool/opt/isaaclab-train-tool/launch.sh
-	cp icon.jpeg debian/isaaclab-train-tool/opt/isaaclab-train-tool/
+	cp icon.png debian/isaaclab-train-tool/opt/isaaclab-train-tool/
 
 # Don't add automatic Python dependencies (we use pip for PyQt5)
 override_dh_python3:

@@ -1973,7 +1973,12 @@ class MainWindow(QMainWindow):
                 if load_run_data and isinstance(load_run_data, dict):
                     args.append(f"--load_run {load_run_data['name']}")
                 if checkpoint_path:
-                    args.append(f"--checkpoint {checkpoint_path}")
+                    # 使用相对于工作空间的路径
+                    run_path = load_run_data['path']
+                    workspace_path = self.current_workspace.path
+                    ckpt_full_path = os.path.join(run_path, checkpoint_path)
+                    ckpt_relative = os.path.relpath(ckpt_full_path, workspace_path)
+                    args.append(f"--checkpoint {ckpt_relative}")
             else:
                 # 其他算法使用完整 checkpoint 路径
                 if load_run_data and isinstance(load_run_data, dict) and checkpoint_path:
@@ -1992,7 +1997,12 @@ class MainWindow(QMainWindow):
                 if load_run_data and isinstance(load_run_data, dict):
                     args.append(f"--load_run {load_run_data['name']}")
                 if checkpoint_path:
-                    args.append(f"--checkpoint {checkpoint_path}")
+                    # 使用相对于工作空间的路径
+                    run_path = load_run_data['path']
+                    workspace_path = self.current_workspace.path
+                    ckpt_full_path = os.path.join(run_path, checkpoint_path)
+                    ckpt_relative = os.path.relpath(ckpt_full_path, workspace_path)
+                    args.append(f"--checkpoint {ckpt_relative}")
             else:
                 # 其他算法使用完整 checkpoint 路径
                 if load_run_data and isinstance(load_run_data, dict) and checkpoint_path:
