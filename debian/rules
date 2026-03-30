@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+export PYBUILD_NAME=isaaclab-train-tool
+export PYBUILD_DESTDIR=debian/isaaclab-train-tool
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	python3 setup.py install --root=debian/isaaclab-train-tool --install-layout=deb
+	# Install desktop file
+	install -D -m 644 debian/isaaclab-train-tool.desktop debian/isaaclab-train-tool/usr/share/applications/isaaclab-train-tool.desktop
+	# Install icon
+	install -D -m 644 icon.jpeg debian/isaaclab-train-tool/usr/share/icons/hicolor/256x256/apps/isaaclab-train-tool.jpeg
+	# Install to /opt
+	mkdir -p debian/isaaclab-train-tool/opt/isaaclab-train-tool
+	cp -r *.py debian/isaaclab-train-tool/opt/isaaclab-train-tool/
+	cp -r requirements.txt debian/isaaclab-train-tool/opt/isaaclab-train-tool/
+
+override_dh_auto_clean:
+	rm -rf build isaaclab_train_tool.egg-info
+
+override_dh_auto_build:

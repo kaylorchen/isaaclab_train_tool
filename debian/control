@@ -1,0 +1,25 @@
+Source: isaaclab-train-tool
+Section: devel
+Priority: optional
+Maintainer: Kaylor <kaylor@kaylordut.com>
+Build-Depends: debhelper (>= 12), python3, python3-pyqt5
+Standards-Version: 4.5.1
+Homepage: https://github.com/isaac-sim/IsaacLab
+X-Python3-Version: >= 3.8
+
+Package: isaaclab-train-tool
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3, python3-pyqt5, tmux, python3-packaging
+Recommends: python3-venv
+Suggests: conda
+Description: GUI tool for managing Isaac Lab training sessions
+ A PyQt5-based graphical interface for managing Isaac Lab
+ training and play sessions. Features include:
+ .
+ - Workspace scanning and task discovery
+ - Conda/venv environment management
+ - Train/Play mode with parameter configuration
+ - tmux session management for training processes
+ - Checkpoint resume and model loading
+ - Multi-language support (Chinese/English)
+ - Support for multiple RL algorithms (rsl_rl, sb3, skrl, rl_games)

@@ -1,0 +1,29 @@
+isaaclab-train-tool (1.1.0) unstable; urgency=medium
+
+  * Add multi-algorithm support for checkpoint loading
+  * Support rsl_rl, sb3, skrl, rl_games algorithms
+  * Fix checkpoint sorting for different algorithms
+  * Refresh runs when script directory changes
+  * Add close session options dialog when closing app
+  * Fix multiple issues in training session management
+
+ -- Kaylor <kaylor@kaylordut.com>  Sun, 30 Mar 2026 12:00:00 +0800
+
+isaaclab-train-tool (1.0.1) unstable; urgency=medium
+
+  * Add workspace history dropdown
+  * Add source install/uninstall feature
+  * Fix tmux history-limit for log capture
+  * Add real-time log append save
+
+ -- Kaylor <kaylor@kaylordut.com>  Sat, 29 Mar 2026 18:00:00 +0800
+
+isaaclab-train-tool (1.0.0) unstable; urgency=medium
+
+  * Initial release
+  * Basic workspace scanning and task discovery
+  * Train/Play mode support
+  * tmux session management
+  * Multi-language support (Chinese/English)
+
+ -- Kaylor <kaylor@kaylordut.com>  Fri, 28 Mar 2026 10:00:00 +0800

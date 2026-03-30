@@ -9,3 +9,9 @@ venv/
 *.egg-info/
 dist/
 build/
+debian/files
+debian/*.debhelper
+debian/*.substvars
+debian/isaaclab-train-tool/
+.pybuild/
+*.deb

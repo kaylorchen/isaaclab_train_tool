@@ -10,7 +10,7 @@ from main_window import MainWindow
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Isaac Lab Train Tool")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("1.1.0")
 
     window = MainWindow()
     window.show()

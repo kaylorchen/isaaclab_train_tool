@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pre-removal script for isaaclab-train-tool
+
+set -e
+
+# Nothing special to do before removal
+
+exit 0

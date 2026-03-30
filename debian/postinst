@@ -1,0 +1,19 @@
+#!/bin/bash
+# Post-installation script for isaaclab-train-tool
+
+set -e
+
+# Update icon cache
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+    gtk-update-icon-cache -f /usr/share/icons/hicolor/ 2>/dev/null || true
+fi
+
+# Update desktop database
+if [ -x /usr/bin/update-desktop-database ]; then
+    update-desktop-database /usr/share/applications/ 2>/dev/null || true
+fi
+
+# Make launch script executable
+chmod +x /opt/isaaclab-train-tool/launch.sh 2>/dev/null || true
+
+exit 0

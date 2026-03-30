@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Isaac Lab Train Tool
+Name[zh_CN]=Isaac Lab 训练工具
+Comment=GUI tool for managing Isaac Lab training sessions
+Comment[zh_CN]=Isaac Lab 训练管理图形界面
+Exec=/opt/isaaclab-train-tool/launch.sh
+Icon=isaaclab-train-tool
+Terminal=false
+Categories=Development;IDE;
+Keywords=isaac;lab;training;rl;robotics;
