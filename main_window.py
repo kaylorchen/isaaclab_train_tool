@@ -2056,16 +2056,11 @@ class MainWindow(QMainWindow):
                 if load_run_data and isinstance(load_run_data, dict):
                     args.append(f"--load_run {load_run_data['name']}")
                 if checkpoint_path:
-                    # 使用相对于工作空间的路径
-                    run_path = load_run_data['path']
-                    workspace_path = self.current_workspace.path
-                    ckpt_full_path = os.path.join(run_path, checkpoint_path)
-                    ckpt_relative = os.path.relpath(ckpt_full_path, workspace_path)
-                    args.append(f"--checkpoint {ckpt_relative}")
+                    # Train模式：checkpoint只需要文件名
+                    args.append(f"--checkpoint {checkpoint_path}")
             else:
-                # 其他算法使用完整 checkpoint 路径
+                # 其他算法：Train模式使用完整/绝对路径
                 if load_run_data and isinstance(load_run_data, dict) and checkpoint_path:
-                    # 构建 checkpoint 的完整路径
                     pattern = CHECKPOINT_PATTERNS.get(algorithm, CHECKPOINT_PATTERNS["rsl_rl"])
                     if pattern["subdir"]:
                         ckpt_full_path = os.path.join(load_run_data['path'], pattern["subdir"], checkpoint_path)
@@ -2080,7 +2075,7 @@ class MainWindow(QMainWindow):
                 if load_run_data and isinstance(load_run_data, dict):
                     args.append(f"--load_run {load_run_data['name']}")
                 if checkpoint_path:
-                    # 使用相对于工作空间的路径
+                    # Play模式：checkpoint需要带logs路径
                     run_path = load_run_data['path']
                     workspace_path = self.current_workspace.path
                     ckpt_full_path = os.path.join(run_path, checkpoint_path)
@@ -2571,7 +2566,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title_label)
 
         # 版本
-        version_label = QLabel(f"Version: 1.1.5")
+        version_label = QLabel(f"Version: 1.1.6")
         version_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_label)
 

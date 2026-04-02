@@ -1,3 +1,9 @@
+isaaclab-train-tool (1.1.6) unstable; urgency=medium
+
+  * Fix checkpoint path: Train mode uses filename only, Play mode uses full path with logs
+
+ -- Kaylor <kaylor@kaylordut.com>  Thu, 02 Apr 2026 17:30:00 +0800
+
 isaaclab-train-tool (1.1.5) unstable; urgency=medium
 
   * Add video recording parameters: --video, --video_length, --video_interval
