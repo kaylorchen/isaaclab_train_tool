@@ -612,6 +612,26 @@ class MainWindow(QMainWindow):
         self.train_enable_cameras_combo.currentIndexChanged.connect(self._update_cmd_preview)
         train_params_layout.addRow(i18n.t("label.enable_cameras"), self.train_enable_cameras_combo)
 
+        # Video选项
+        self.train_video_check = QCheckBox()
+        self.train_video_check.stateChanged.connect(self._on_train_video_changed)
+        self.train_video_check.stateChanged.connect(self._update_cmd_preview)
+        train_params_layout.addRow(i18n.t("label.video"), self.train_video_check)
+
+        # Video length选项
+        self.train_video_length_spin = QSpinBox()
+        self.train_video_length_spin.setRange(1, 10000)
+        self.train_video_length_spin.setValue(100)
+        self.train_video_length_spin.valueChanged.connect(self._update_cmd_preview)
+        train_params_layout.addRow(i18n.t("label.video_length"), self.train_video_length_spin)
+
+        # Video interval选项
+        self.train_video_interval_spin = QSpinBox()
+        self.train_video_interval_spin.setRange(1, 1000000)
+        self.train_video_interval_spin.setValue(500)
+        self.train_video_interval_spin.valueChanged.connect(self._update_cmd_preview)
+        train_params_layout.addRow(i18n.t("label.video_interval"), self.train_video_interval_spin)
+
         # Resume选项
         self.train_resume_check = QCheckBox()
         self.train_resume_check.stateChanged.connect(self._on_train_resume_changed)
@@ -665,6 +685,26 @@ class MainWindow(QMainWindow):
         self.play_enable_cameras_combo.addItem(i18n.t("combo.enabled"), 1)
         self.play_enable_cameras_combo.currentIndexChanged.connect(self._update_cmd_preview)
         play_params_layout.addRow(i18n.t("label.enable_cameras"), self.play_enable_cameras_combo)
+
+        # Video选项
+        self.play_video_check = QCheckBox()
+        self.play_video_check.stateChanged.connect(self._on_play_video_changed)
+        self.play_video_check.stateChanged.connect(self._update_cmd_preview)
+        play_params_layout.addRow(i18n.t("label.video"), self.play_video_check)
+
+        # Video length选项
+        self.play_video_length_spin = QSpinBox()
+        self.play_video_length_spin.setRange(1, 10000)
+        self.play_video_length_spin.setValue(100)
+        self.play_video_length_spin.valueChanged.connect(self._update_cmd_preview)
+        play_params_layout.addRow(i18n.t("label.video_length"), self.play_video_length_spin)
+
+        # Video interval选项
+        self.play_video_interval_spin = QSpinBox()
+        self.play_video_interval_spin.setRange(1, 1000000)
+        self.play_video_interval_spin.setValue(500)
+        self.play_video_interval_spin.valueChanged.connect(self._update_cmd_preview)
+        play_params_layout.addRow(i18n.t("label.video_interval"), self.play_video_interval_spin)
 
         # Load run选项
         self.play_load_run_combo = QComboBox()
@@ -1006,7 +1046,11 @@ class MainWindow(QMainWindow):
         self.train_livestream_combo.setCurrentIndex(livestream_value)
         enable_cameras_value = int(train_params.get("enable_cameras", 0) or 0)
         self.train_enable_cameras_combo.setCurrentIndex(enable_cameras_value)
+        self.train_video_check.setChecked(train_params.get("video", False))
+        self.train_video_length_spin.setValue(train_params.get("video_length", 100))
+        self.train_video_interval_spin.setValue(train_params.get("video_interval", 500))
         self._on_train_livestream_changed(self.train_livestream_combo.currentIndex())
+        self._on_train_video_changed(self.train_video_check.checkState())
 
         # Play参数
         play_params = params.get("play", {})
@@ -1016,7 +1060,11 @@ class MainWindow(QMainWindow):
         self.play_livestream_combo.setCurrentIndex(livestream_value)
         enable_cameras_value = int(play_params.get("enable_cameras", 0) or 0)
         self.play_enable_cameras_combo.setCurrentIndex(enable_cameras_value)
+        self.play_video_check.setChecked(play_params.get("video", False))
+        self.play_video_length_spin.setValue(play_params.get("video_length", 100))
+        self.play_video_interval_spin.setValue(play_params.get("video_interval", 500))
         self._on_play_livestream_changed(self.play_livestream_combo.currentIndex())
+        self._on_play_video_changed(self.play_video_check.checkState())
 
         # 通用参数
         self.seed_spin.setValue(params.get("seed", -1))
@@ -1029,6 +1077,14 @@ class MainWindow(QMainWindow):
         else:
             self.train_headless_check.setEnabled(True)
 
+    def _on_train_video_changed(self, state):
+        """Train模式video变化时，强制启用enable_cameras"""
+        if state == Qt.Checked:
+            self.train_enable_cameras_combo.setCurrentIndex(1)
+            self.train_enable_cameras_combo.setEnabled(False)
+        else:
+            self.train_enable_cameras_combo.setEnabled(True)
+
     def _on_play_livestream_changed(self, index):
         """Play模式livestream变化时，强制勾选headless"""
         if index > 0:  # 选择了1或2
@@ -1036,6 +1092,14 @@ class MainWindow(QMainWindow):
             self.play_headless_check.setEnabled(False)
         else:
             self.play_headless_check.setEnabled(True)
+
+    def _on_play_video_changed(self, state):
+        """Play模式video变化时，强制启用enable_cameras"""
+        if state == Qt.Checked:
+            self.play_enable_cameras_combo.setCurrentIndex(1)
+            self.play_enable_cameras_combo.setEnabled(False)
+        else:
+            self.play_enable_cameras_combo.setEnabled(True)
 
     def _on_train_resume_changed(self, state):
         """Train模式resume选项变化"""
@@ -1872,12 +1936,18 @@ class MainWindow(QMainWindow):
                 "headless": self.train_headless_check.isChecked(),
                 "livestream": self.train_livestream_combo.currentData(),
                 "enable_cameras": self.train_enable_cameras_combo.currentData(),
+                "video": self.train_video_check.isChecked(),
+                "video_length": self.train_video_length_spin.value(),
+                "video_interval": self.train_video_interval_spin.value(),
             },
             "play": {
                 "num_envs": self.play_num_envs_spin.value(),
                 "headless": self.play_headless_check.isChecked(),
                 "livestream": self.play_livestream_combo.currentData(),
                 "enable_cameras": self.play_enable_cameras_combo.currentData(),
+                "video": self.play_video_check.isChecked(),
+                "video_length": self.play_video_length_spin.value(),
+                "video_interval": self.play_video_interval_spin.value(),
             },
             "seed": self.seed_spin.value(),
         }
@@ -1962,6 +2032,18 @@ class MainWindow(QMainWindow):
         # enable_cameras: 1=启用
         if enable_cameras == 1:
             args.append("--enable_cameras 1")
+
+        # Video参数
+        if is_train:
+            if self.train_video_check.isChecked():
+                args.append("--video")
+                args.append(f"--video_length {self.train_video_length_spin.value()}")
+                args.append(f"--video_interval {self.train_video_interval_spin.value()}")
+        else:
+            if self.play_video_check.isChecked():
+                args.append("--video")
+                args.append(f"--video_length {self.play_video_length_spin.value()}")
+                args.append(f"--video_interval {self.play_video_interval_spin.value()}")
 
         # 获取算法类型
         algorithm = self._get_algorithm_type()
@@ -2489,7 +2571,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title_label)
 
         # 版本
-        version_label = QLabel(f"Version: 1.1.4")
+        version_label = QLabel(f"Version: 1.1.5")
         version_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_label)
 
@@ -2571,12 +2653,18 @@ class MainWindow(QMainWindow):
                 "headless": self.train_headless_check.isChecked(),
                 "livestream": self.train_livestream_combo.currentData(),
                 "enable_cameras": self.train_enable_cameras_combo.currentData(),
+                "video": self.train_video_check.isChecked(),
+                "video_length": self.train_video_length_spin.value(),
+                "video_interval": self.train_video_interval_spin.value(),
             },
             "play": {
                 "num_envs": self.play_num_envs_spin.value(),
                 "headless": self.play_headless_check.isChecked(),
                 "livestream": self.play_livestream_combo.currentData(),
                 "enable_cameras": self.play_enable_cameras_combo.currentData(),
+                "video": self.play_video_check.isChecked(),
+                "video_length": self.play_video_length_spin.value(),
+                "video_interval": self.play_video_interval_spin.value(),
             },
             "seed": self.seed_spin.value(),
         }
