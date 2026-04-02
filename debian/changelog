@@ -1,3 +1,10 @@
+isaaclab-train-tool (1.1.4) unstable; urgency=medium
+
+  * Fix log capture: redirect stderr to stdout (2>&1) to capture all terminal output
+  * Now errors and exceptions from training scripts are properly displayed in UI and saved to log files
+
+ -- Kaylor <kaylor@kaylordut.com>  Thu, 02 Apr 2026 14:30:00 +0800
+
 isaaclab-train-tool (1.1.3) unstable; urgency=medium
 
   * Fix run list sorting: sort by folder modification time (newest first)

@@ -2021,7 +2021,8 @@ class MainWindow(QMainWindow):
 
         # 构建完整命令
         script_path = f"{script_dir}/{mode}.py"
-        cmd = f"python3 {script_path} {' '.join(args)}"
+        # 添加 2>&1 确保 stderr 也输出到 stdout，这样所有终端输出都能被捕获
+        cmd = f"python3 {script_path} {' '.join(args)} 2>&1"
 
         return cmd
 
@@ -2488,7 +2489,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title_label)
 
         # 版本
-        version_label = QLabel(f"Version: 1.1.3")
+        version_label = QLabel(f"Version: 1.1.4")
         version_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_label)
 
