@@ -80,20 +80,21 @@ def sort_pt_files_by_number(files: list) -> list:
 
 
 def sort_runs_by_number(runs: list) -> list:
-    """按最新 checkpoint 数字降序排序 run
+    """按运行文件夹修改时间降序排序（最新的在最前面）
 
     Args:
-        runs: run 信息列表，每个元素包含 'latest_model' 和 'algorithm' 字段
+        runs: run 信息列表，每个元素包含 'path' 字段
 
     Returns:
         list: 排序后的 run 列表
     """
-    def get_run_number(r):
-        latest_model = r.get('latest_model', '')
-        algorithm = r.get('algorithm', 'rsl_rl')
-        return extract_checkpoint_number(latest_model, algorithm)
+    def get_run_mtime(r):
+        run_path = r.get('path', '')
+        if run_path and os.path.isdir(run_path):
+            return os.path.getmtime(run_path)
+        return 0
 
-    return sorted(runs, key=get_run_number, reverse=True)
+    return sorted(runs, key=get_run_mtime, reverse=True)
 
 
 # 不同算法的 checkpoint 搜索配置
