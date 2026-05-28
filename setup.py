@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='isaaclab-train-tool',
-    version='1.1.6',
+    version='1.1.7',
     description='GUI tool for managing Isaac Lab training sessions',
     author='Kaylor',
     author_email='kaylor@kaylordut.com',

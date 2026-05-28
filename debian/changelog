@@ -1,3 +1,12 @@
+isaaclab-train-tool (1.1.7) unstable; urgency=medium
+
+  * Add pip install detection for Isaac Lab path auto-detection
+  * Support isaaclab CLI command for pip-installed environments
+  * Add force Play/Train mode checkboxes
+  * Auto-detect nvidia library paths and set LD_LIBRARY_PATH
+
+ -- Kaylor <kaylor@kaylordut.com>  Thu, 28 May 2026 12:00:00 +0800
+
 isaaclab-train-tool (1.1.6) unstable; urgency=medium
 
   * Fix checkpoint path: Train mode uses filename only, Play mode uses full path with logs

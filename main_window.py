@@ -2654,7 +2654,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(title_label)
 
         # 版本
-        version_label = QLabel(f"Version: 1.1.6")
+        version_label = QLabel(f"Version: 1.1.7")
         version_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(version_label)
 
