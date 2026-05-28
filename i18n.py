@@ -240,6 +240,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "log.save_path_placeholder": "默认保存到当前目录",
         "log.auto_save": "自动保存日志",
 
+        # Force mode
+        "label.force_play": "强制Play",
+        "label.force_train": "强制Train",
+
         # Tooltips
         "tooltip.save_params": "保存当前参数为默认值",
         "tooltip.stop": "终止当前训练会话",
@@ -470,6 +474,10 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "log.save_path": "Log Save Path:",
         "log.save_path_placeholder": "Default to current directory",
         "log.auto_save": "Auto Save Log",
+
+        # Force mode
+        "label.force_play": "Force Play",
+        "label.force_train": "Force Train",
 
         # Tooltips
         "tooltip.save_params": "Save current parameters as default",

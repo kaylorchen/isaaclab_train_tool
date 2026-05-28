@@ -577,10 +577,33 @@ class MainWindow(QMainWindow):
         self.task_combo.currentIndexChanged.connect(self._on_task_changed)
         selection_layout.addRow(i18n.t("label.task"), self.task_combo)
 
-        # 任务类型提示
+        # 任务类型提示和强制模式
         self.task_type_label = QLabel("")
         self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
-        selection_layout.addRow(i18n.t("label.type"), self.task_type_label)
+
+        self.force_play_check = QCheckBox(i18n.t("label.force_play"))
+        self.force_play_check.setToolTip(i18n.t("label.force_play"))
+        self.force_train_check = QCheckBox(i18n.t("label.force_train"))
+        self.force_train_check.setToolTip(i18n.t("label.force_train"))
+
+        # 互斥：勾选一个自动取消另一个
+        self.force_play_check.toggled.connect(
+            lambda checked: self.force_train_check.setChecked(False) if checked else None
+        )
+        self.force_train_check.toggled.connect(
+            lambda checked: self.force_play_check.setChecked(False) if checked else None
+        )
+
+        # 强制模式变化时刷新显示
+        self.force_play_check.toggled.connect(lambda: self._on_force_mode_changed())
+        self.force_train_check.toggled.connect(lambda: self._on_force_mode_changed())
+
+        type_layout = QHBoxLayout()
+        type_layout.addWidget(self.task_type_label)
+        type_layout.addStretch()
+        type_layout.addWidget(self.force_play_check)
+        type_layout.addWidget(self.force_train_check)
+        selection_layout.addRow(i18n.t("label.type"), type_layout)
 
         self.selection_group.setLayout(selection_layout)
         main_layout.addWidget(self.selection_group)
@@ -1912,18 +1935,7 @@ class MainWindow(QMainWindow):
             self.task_type_label.setText("")
             return
 
-        # 判断是 Train 还是 Play 任务
-        is_play = "-Play" in task_id
-
-        # 更新类型标签
-        if is_play:
-            self.task_type_label.setText("🎮 Play (播放)")
-            self.task_type_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
-            self.params_stack.setCurrentIndex(1)  # Play参数页
-        else:
-            self.task_type_label.setText("🎯 Train (训练)")
-            self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
-            self.params_stack.setCurrentIndex(0)  # Train参数页
+        self._update_mode_display()
 
         # 刷新运行记录
         if self.train_resume_check.isChecked() and self.train_refresh_runs_btn.isEnabled():
@@ -1932,8 +1944,45 @@ class MainWindow(QMainWindow):
             self._refresh_play_runs()
         self._update_cmd_preview()
 
+    def _on_force_mode_changed(self):
+        """强制模式复选框变化时刷新显示"""
+        self._update_mode_display()
+        self._update_cmd_preview()
+        self._update_run_button()
+
+    def _update_mode_display(self):
+        """根据强制模式和任务名更新类型标签和参数页"""
+        task_id = self.task_combo.currentData()
+        if not task_id:
+            return
+
+        is_forced_play = self.force_play_check.isChecked()
+        is_forced_train = self.force_train_check.isChecked()
+        is_play = self._is_play_task()
+
+        if is_forced_play:
+            self.task_type_label.setText("🎮 Play (" + i18n.t("label.force_play") + ")")
+            self.task_type_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            self.params_stack.setCurrentIndex(1)
+        elif is_forced_train:
+            self.task_type_label.setText("🎯 Train (" + i18n.t("label.force_train") + ")")
+            self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+            self.params_stack.setCurrentIndex(0)
+        elif is_play:
+            self.task_type_label.setText("🎮 Play (播放)")
+            self.task_type_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+            self.params_stack.setCurrentIndex(1)
+        else:
+            self.task_type_label.setText("🎯 Train (训练)")
+            self.task_type_label.setStyleSheet("color: #2196F3; font-weight: bold;")
+            self.params_stack.setCurrentIndex(0)
+
     def _is_play_task(self) -> bool:
-        """判断当前任务是否是 Play 任务"""
+        """判断当前任务是否是 Play 任务（考虑强制模式）"""
+        if self.force_play_check.isChecked():
+            return True
+        if self.force_train_check.isChecked():
+            return False
         task_id = self.task_combo.currentData()
         if task_id:
             return "-Play" in task_id
