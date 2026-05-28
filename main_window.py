@@ -281,6 +281,18 @@ def detect_isaaclab_path(python_cmd: str = None) -> str:
 
                 print(f"[IsaacLab检测] 从包路径向上查找未找到根目录")
 
+                # pip 安装（非 editable）：包在 <site-packages>/isaaclab/ 下
+                # 检查包目录内部是否有 source/isaaclab/
+                if location and not editable_location:
+                    pkg_dir = os.path.join(location, 'isaaclab')
+                    print(f"[IsaacLab检测] 尝试 pip 安装路径: {pkg_dir}")
+                    if os.path.isdir(pkg_dir):
+                        source_isaaclab = os.path.join(pkg_dir, 'source', 'isaaclab')
+                        if os.path.isdir(source_isaaclab):
+                            print(f"[IsaacLab检测] pip 安装，找到 source/isaaclab: {source_isaaclab}")
+                            print(f"[IsaacLab检测] Isaac Lab 根目录: {pkg_dir}")
+                            return pkg_dir
+
     except subprocess.TimeoutExpired:
         print(f"[IsaacLab检测] pip show 超时（10秒）")
     except Exception as e:
@@ -1518,10 +1530,12 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("new_project.no_isaaclab"))
             return
 
+        # 检测是源码安装（有 isaaclab.sh）还是 pip 安装（用 isaaclab 命令）
         isaaclab_sh = os.path.join(isaaclab_path, "isaaclab.sh")
-        if not os.path.exists(isaaclab_sh):
-            QMessageBox.warning(self, i18n.t("msg.warning"), i18n.t("new_project.no_isaaclab"))
-            return
+        if os.path.exists(isaaclab_sh):
+            isaaclab_cmd = isaaclab_sh
+        else:
+            isaaclab_cmd = "isaaclab"
 
         # 让用户选择新工程路径
         project_path = QFileDialog.getExistingDirectory(
@@ -1540,12 +1554,12 @@ class MainWindow(QMainWindow):
         # 获取环境激活命令
         activation_cmd = self.config_manager.get_activation_command()
 
-        # 构建命令：在选择的路径下运行 isaaclab.sh -n（使用绝对路径）
-        # isaaclab.sh -n 会交互式地询问项目信息，需要用户在终端中操作
+        # 构建命令：在选择的路径下运行 isaaclab -n
+        # isaaclab -n 会交互式地询问项目信息，需要用户在终端中操作
         if activation_cmd:
-            cmd = f"{activation_cmd} && {isaaclab_sh} -n"
+            cmd = f"{activation_cmd} && {isaaclab_cmd} -n"
         else:
-            cmd = f"{isaaclab_sh} -n"
+            cmd = f"{isaaclab_cmd} -n"
 
         # 根据终端类型构建命令
         terminal_cmd = self._build_terminal_command(terminal, cmd, i18n.t("new_project.terminal_title"))
