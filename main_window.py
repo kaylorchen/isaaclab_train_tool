@@ -2048,6 +2048,25 @@ class MainWindow(QMainWindow):
         )
         self.run_btn.setEnabled(can_run)
 
+    def _get_nvidia_lib_paths(self) -> str:
+        """自动检测 Python 环境中 nvidia CUDA 库路径，用于 LD_LIBRARY_PATH"""
+        python_exe = self.config_manager.get_python_executable()
+        if not python_exe or not os.path.exists(python_exe):
+            return ""
+        try:
+            result = subprocess.run(
+                [python_exe, "-c",
+                 "import site, glob, os; "
+                 "dirs = glob.glob(os.path.join(site.getsitepackages()[0], 'nvidia', '*', 'lib')); "
+                 "print(':'.join(dirs))"],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return ""
+
     def _build_command(self) -> str:
         """构建执行命令"""
         script_dir = self.script_dir_combo.currentText()
@@ -2212,6 +2231,12 @@ class MainWindow(QMainWindow):
             # 激活环境
             if activation_cmd:
                 self.tmux_manager.send_command(session_name, activation_cmd)
+
+            # 设置 CUDA 动态库路径（nvidia 包安装在 site-packages 中）
+            nvidia_paths = self._get_nvidia_lib_paths()
+            if nvidia_paths:
+                self.tmux_manager.send_command(session_name,
+                    f"export LD_LIBRARY_PATH={nvidia_paths}:$LD_LIBRARY_PATH")
 
             # 执行命令
             self.tmux_manager.send_command(session_name, cmd)
